@@ -75,10 +75,11 @@ while(1)
                u = [0, 0];
            end
            % Filter goes here
+           % Update landmark list after filter
+           landmark_list = updateLandmarkList(x, landmark_list);
        end
    end
    
-    
     oldOdomPose = odom_pose;
     oldOdomTime = odomdata.Header.Stamp.Sec;
 end

@@ -1,14 +1,49 @@
-function [observed_LL,output_confirmed_landmark_list, output_landmark_list]= getLandmark(confirmed_landmark_list,landmark_list,laserdata,pose)
-  
+function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdata,pose)
+%GETLANDMARK Determine the location of wall landmarks based on a laser
+%scan and the pose of the turtlebot. Then determine if that wall landmark seen
+%by this sweep of the laser scan has been previously seen by the robot
+%based on the landmark_list. If so then increment the count of that wall
+%landmark within the landmark_list, else add the new wall landmark to the
+%landmark_list. Output the updated landmark_list as output_landmark_list
+%Also, if a landmark has been reobserved from the current
+%laserdata and that landmark has been observed a number of times greater
+%than the consensus then determine the distance of the robot from that
+%landmark and the angle between the robot and the landmark with respect to
+%the world frame. Output the distance, angle, and the index of the
+%reobserved landmark as observed_LL
+%
+%LANDMARK_LIST Contains the x and y coordinate of each landmark, the number
+%of times the landmark has been observed, and the index of the landmark in
+%the state vector (index will be 0 if landmark has not been added to
+%statevector). If new landmarks are observed or past landmarks are
+%reobserved then the list is updated accordingly.
+%
+%LASERSCAN Contains the laser scan readings from the kinect sensor on the
+%turtlebot. The data provided by laserscan is operated on to determine the
+%locations of walls within the laserscan data. 
+%
+%POSE Contains the x,y,theta of the turtlebot in relation to the world
+%frame. Used to apply rotation matrix to landmarks that are initally found
+%in the LASERSCAN data converting them from the turtlebots from to the
+%world frame. 
+%
+%OBSERVED_LL A list of landmarks that have already been observed enough
+%times to meet the consensus and have also been reobserved from the current
+%laserscan data. observed_LL is in the form of distance from the robot to the
+%landmark, angle of the robot to the landmark with respect to the world
+%frame, and index of the landmark in the state vector 
+%
+%OUTPUT_LANDMARK_LIST Contains the updated landmark list based on the new
+%reading from the laserscan. Data is of the same format as landmark_list. 
+%
 
-
-    timeout= 5; %number of times program will search through a single frame of recieved data before stopping
+    timeout= 5; %number of times program will search through a laserscan data before stopping
     iteration=1; %counts the current number that the program has looped
     num_samples =10; %number of points to be initally sampled and used to create inital line of best fit
     degrees = 5;%degree space that inital samples can be taken from (5 on both sides)
-    distance=.1; %max distance that a point can be away from line of best fit and still be included in the line
+    distance=.1; %max distance that a point can be away from inital line of best fit and still be included in the line
     consensus = 200; % number of points needed to be near line of best fit in order for line to be approved 
-    confirmed_consensus=10; %number of times a wall must be seen before it will be added to the confirmed landmark list
+    confirmed_consensus=10; %number of times a wall must be seen before it will be indexed on the state vector
      
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
@@ -21,29 +56,6 @@ function [observed_LL,output_confirmed_landmark_list, output_landmark_list]= get
 
     %update landmark_list based on confirmed_landmark_list
     
-    %check if confirmed_landmark_list has any coordinates
-    if(size(confirmed_landmark_list)>3)
-        %loop through all of the coordinates in the confirmed landmark list
-        for ii=4:size(confirmed_landmark_list)
-            %update the landmark_list coordinates based on the confirmed
-            %landmark list coordinates 
-            for jj=1:size(landmark_list)  %FIX: will search through entire list even after it finds the coordinates
-                if(landmark_list(4,jj)==ii)
-                    landmark_list(1,jj)=confirmed_landmark_list(ii);
-                    landmark_list(2,jj)=confirmed_landmark_list(ii+1);
-                    jj=size(landmark_list); %NOT TESTED
-                end
-            end 
-            %each pair of coordinates occupies two locations in the vector
-            %so need to iterate location by 2
-            ii=ii+1;
-        end
-        
-    end
-
-
-
-
 
 
     world_line_list=[]; 
@@ -299,8 +311,10 @@ function [observed_LL,output_confirmed_landmark_list, output_landmark_list]= get
          % disp('land length');
          % disp(size(landmark_list));
           if(landmark_list(i,3)>confirmed_consensus && landmark_list(i,4)==0)
-            landmark_list(i,4)=size(confirmed_landmark_list,1)+1;
-            confirmed_landmark_list=[confirmed_landmark_list; landmark_list(i,1); landmark_list(i,2)] ;
+            %landmark_list(i,4)=size(confirmed_landmark_list,1)+1;
+            %confirmed_landmark_list=[confirmed_landmark_list; landmark_list(i,1); landmark_list(i,2)] ;
+            
+            landmark_list(i,4)=max(landmark_list(:,4))+1;
             
           end
       end
@@ -331,10 +345,10 @@ function [observed_LL,output_confirmed_landmark_list, output_landmark_list]= get
        %       pfLL
       end 
               
-      confirmed_landmark_list(1,1)=pose(1);
-      confirmed_landmark_list(2,1)=pose(2);
-      
-      confirmed_landmark_list(3,1)=pose(3); 
+    %  confirmed_landmark_list(1,1)=pose(1);
+    %  confirmed_landmark_list(2,1)=pose(2);
+    %  
+    %  confirmed_landmark_list(3,1)=pose(3); 
       
          
       %prefiltered 
@@ -367,7 +381,14 @@ function [observed_LL,output_confirmed_landmark_list, output_landmark_list]= get
        
        % set(gcf,'Visible','On');
        % set(0,'DefaultFigureVisible','On');
-       output_confirmed_landmark_list=confirmed_landmark_list;
+       
+       
+       
+       %basic selection sort for pfLL based on index
+       sort(pfLL,4);
+           
+       
+       %output_confirmed_landmark_list=confirmed_landmark_list;
        output_landmark_list=landmark_list;
        observed_LL=pfLL;
 end

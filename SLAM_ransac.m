@@ -41,7 +41,7 @@ while(1)
         pose = odom_pose;
     end
     
-    [observed_LL,confirmed_landmark_list, landmark_list]=getLandmark(confirmed_landmark_list,landmark_list,data,pose);
+    [observed_LL,landmark_list]=getLandmark(landmark_list,data,pose);
     disp('pfLL');
     disp(observed_LL);
     disp('landmark_list');
@@ -51,6 +51,7 @@ while(1)
    % close all;                          %close all figures
    
    % Apply EKF to each observed landmark
+   
    if(~isempty(observed_LL))
        [numOfLandmarks ~] = size(observed_LL);
        for ii = 1:numOfLandmarks

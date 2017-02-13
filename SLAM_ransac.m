@@ -54,6 +54,9 @@ while(1)
    
    if(~isempty(observed_LL))
        [numOfLandmarks ~] = size(observed_LL);
+       if ekf_init == 1
+        [x,P] = append(x,P,u,observed_LL,R);
+       end
        for ii = 1:numOfLandmarks
            % Apply EKF
            if(ii == 1)
@@ -64,17 +67,28 @@ while(1)
                u = [delta_D, delta_Theta];
                if(ekf_init == 0)
                    % initialize EKF variables
-                   x;
-                   P;
-                   Q;
-                   R;
-                   ekf_init = 1;
+                   x = pose;
+                   % Covariance Matrix
+                    P = eye(length(x)).*0.1; 
+                    P(1,1) = 0.1; P(2,2) = 0.1; P(3,3) = 0.1;
+                    % Measurement Noise
+                    R = ones(numOfNodes,1)*10; % Set initial uncertainty (noise) high
+                    % Process Noise
+                    C = 0.1;
+                    W = [u(1)*cosd(x(3)) u(1)*sind(x(3)) u(2)]';
+                    Q = zeros(size(P));
+                    Q(1:3,1:3) = W*C*W';
+                    [x,P] = append(x,P,u,observed_LL,R);
+                    ekf_init = 1;
                end
            else
                % get control vector
                u = [0, 0];
            end
            % Filter goes here
+           
+           [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q);
+           landmark_list = updateLandmarkList(x, landmark_list);
        end
    end
    

@@ -2,9 +2,9 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
-ipaddress = '192.168.1.13';         %define ipadress of turtlebot
+%setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+%setenv('ROS_IP', '192.168.1.104');
+ipaddress = '192.168.1.11';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
 %final_landmark_list=[]; 
@@ -48,17 +48,17 @@ while(1)
             pose = pose + [odom_pose - oldOdomPose];
         end
     end
-    [observed_LL,landmark_list]=getLandmark(landmark_list,data,pose);
+    [observed_LL,landmark_list]=getLandmark(landmark_list,data,odom_pose);
     landmark_list
-%     disp('pfLL');
-%     disp(observed_LL);
-%     disp('landmark_list');
-%     disp(landmark_list);
-%     disp('confirmed');
-%     disp(confirmed_landmark_list);
-   % close all;                          %close all figures
+    disp('pfLL');
+    disp(observed_LL);
+    disp('landmark_list');
+    disp(landmark_list);
+    disp('confirmed');
+    disp(confirmed_landmark_list);
+   close all;                          %close all figures
    
-   % Apply EKF to each observed landmark
+%   Apply EKF to each observed landmark
    
    if(~isempty(observed_LL))
        [numOfLandmarks ~] = size(observed_LL);
@@ -121,7 +121,7 @@ while(1)
     else
         scatter(pose(1),pose(2),'red','o');
     end
-    % Plot scan data
+    %Plot scan data
     cartes_data = readCartesian(data); %read cartesian co-ordinates
     rot = [cosd(pose(3)) sind(pose(3)) pose(1); -sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
     tmp = rot*[cartes_data,ones(length(cartes_data),1)]';

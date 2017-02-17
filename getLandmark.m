@@ -75,7 +75,8 @@ w = warning ('off','all');
     while(isempty(unassociated_readings)==false && iteration<timeout && length(unassociated_readings)>consensus && length(unassociated_readings)>num_samples ) %loop while there are still unassocated readings, less than x trails have taken place, and there are still more unassociated readings then the consensus size 
         
         samples=findInitSamples(unassociated_readings,degrees,num_samples); %get random samples within degrees of each other
-
+        samples
+        unassociated_readings
         %figure(1);
         %ex=plot(data); %needed for function below
         %xlim=get(gca,'XLim'); %needed to extend the best fit line created in getLine()
@@ -87,6 +88,7 @@ w = warning ('off','all');
             sample_line=getSampleLine(samples,xlim); 
     
             [unassociated_readings, landmark_line]=getLandmarkLine(sample_line,unassociated_readings,distance,consensus,xlim);
+            samples=[];
         end
     
     
@@ -438,10 +440,10 @@ function z=getSampleLine(samples,xlim)
 
   set(gcf,'Visible','off');
     set(0,'DefaultFigureVisible','off');
-
+hold off; 
 mhm=scatter(samples(:,2),samples(:,1));
 h=lsline;
-
+%p=polyfit(samples(:,2),samples(:,1))
 
 
 YDat=h.YData;   
@@ -500,6 +502,7 @@ if length(idx)>consensus
     rem=reshape(rem,[],2);
     set(gcf,'Visible','off');
     set(0,'DefaultFigureVisible','off');
+    hold off; 
     merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
     h=lsline;
     YDat=h.XData;   

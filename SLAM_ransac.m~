@@ -1,9 +1,6 @@
 clc;                                %clear command window
-clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
 ipaddress = '192.168.1.13';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
@@ -42,7 +39,7 @@ while(1)
         pose = x(1:3) + [odom_pose - oldOdomPose];
     else
         % EKF not initialized
-        if(~exist('pose'))
+        if(exist('oldOdomPose'))
         	pose = [0,0,0];
         else
             pose = pose + [odom_pose - oldOdomPose];
@@ -79,7 +76,7 @@ while(1)
                    % Covariance Matrix
                     P = eye(length(x)).*0.1; 
                     P(1,1) = 0.1; P(2,2) = 0.1; P(3,3) = 0.1;
-                    R = zeros(2,2); R(1,1) = observed_LL(ii,1)*10; R(2,2) = observed_LL(ii,2)*10;
+                   
                     [x,P] = append(x,P,u,observed_LL,R);
                      
                     ekf_init = 1;
@@ -87,10 +84,9 @@ while(1)
            else
                % get control vector
                u = [0, 0];
-               R = zeros(2,2); R(1,1) = observed_LL(ii,1)*10; R(2,2) = observed_LL(ii,2)*10;
            end
            % Filter goes here
-           
+           R = zeros(2,2); R(1,1) = observed_LL(ii,1)*10; R(2,2) = observed_LL(ii,2)*10;
            % Process Noise : Always calculate after appending as
            % it changes the size of P
             C = 0.1;
@@ -110,12 +106,9 @@ while(1)
     oldOdomTime = odomdata.Header.Stamp.Sec;
     
     % Print Junk
-    set(gcf,'Visible','on');
-    set(0,'DefaultFigureVisible','on');
-    clf; hold on;
     if(ekf_init)
         scatter(x(1),x(2),'red','o');
-        for ii = 1:((length(x)-3)/2)
+        for ii = 1:numOfLandmarks
             scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','o');
         end
     else

@@ -75,8 +75,8 @@ w = warning ('off','all');
     while(isempty(unassociated_readings)==false && iteration<timeout && length(unassociated_readings)>consensus && length(unassociated_readings)>num_samples ) %loop while there are still unassocated readings, less than x trails have taken place, and there are still more unassociated readings then the consensus size 
         
         samples=findInitSamples(unassociated_readings,degrees,num_samples); %get random samples within degrees of each other
-        samples
-        unassociated_readings
+%         samples
+%         unassociated_readings
         %figure(1);
         %ex=plot(data); %needed for function below
         %xlim=get(gca,'XLim'); %needed to extend the best fit line created in getLine()

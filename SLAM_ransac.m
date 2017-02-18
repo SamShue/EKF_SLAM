@@ -2,9 +2,9 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
-ipaddress = '192.168.1.13';         %define ipadress of turtlebot
+%setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+%setenv('ROS_IP', '192.168.1.104');
+ipaddress = '192.168.1.15';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
 %final_landmark_list=[]; 
@@ -17,7 +17,6 @@ confirmed_landmark_list=zeros(3,1); %this is an input to the function, the first
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
 %odom = rossubscriber('/robot_pose_ekf/odom_combined');  %initialize a subscriber node to odomotry data
 odom = rossubscriber('/odom');
-reallyOldOdomPose = zeros(3,1);
 ekf_init = 0;
 while(1)
     % Get sensor information
@@ -57,7 +56,7 @@ while(1)
     disp(landmark_list);
     disp('confirmed');
     disp(confirmed_landmark_list);
-   close all;                          %close all figures
+  % close all;                          %close all figures
    
 %   Apply EKF to each observed landmark
    
@@ -70,8 +69,9 @@ while(1)
            % Apply EKF
            if(ii == 1)
                % get control vector
-               delta_D = sqrt((odom_pose(1) - reallyOldOdomPose(1))^2 + (odom_pose(2) - reallyOldOdomPose(2))^2);
-               delta_Theta = odom_pose(3) - reallyOldOdomPose(3);
+               delta_t = odomTime - oldOdomTime; % Change in time (seconds) (not used atm)
+               delta_D = sqrt((odom_pose(1) - oldOdomPose(1))^2 + (odom_pose(2) - oldOdomPose(2))^2);
+               delta_Theta = odom_pose(3) - oldOdomPose(3);
                u = [delta_D, delta_Theta];
                if(ekf_init == 0)
                    % initialize EKF variables
@@ -98,12 +98,10 @@ while(1)
             Q = zeros(size(P));
             Q(1:3,1:3) = W*C*W';
            [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q);
-           reallyOldOdomPose = odom_pose;
            if(isnan(x(4)))
                x
            end
            landmark_list = updateLandmarkList(x, landmark_list);
-           x
        end
    end
    
@@ -112,20 +110,21 @@ while(1)
     oldOdomTime = odomdata.Header.Stamp.Sec;
     
     % Print Junk
-%     set(gcf,'Visible','on');
-%     set(0,'DefaultFigureVisible','on');
-%     clf; hold on;
-%     if(ekf_init)
-%         scatter(x(1),x(2),'red','o');
-%         for ii = 1:((length(x)-3)/2)
-%             scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','o');
-%         end
-%     else
-%         scatter(pose(1),pose(2),'red','o');
-%     end
-%     %Plot scan data
-%     cartes_data = readCartesian(data); %read cartesian co-ordinates
-%     rot = [cosd(pose(3)) sind(pose(3)) pose(1); -sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
-%     tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
-%     scatter(tmp(1,:),tmp(2,:),'magenta','.');
+   % set(gcf,'Visible','on');
+   % set(0,'DefaultFigureVisible','on');
+    clf; hold on;
+    if(ekf_init)
+        scatter(x(1),x(2),'red','o');
+        for ii = 1:((length(x)-3)/2)
+            scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','o');
+        end
+    else
+        scatter(odom_pose(1),odom_pose(2),'green','x'); 
+        scatter(pose(1),pose(2),'red','o');
+    end
+    %Plot scan data
+    cartes_data = readCartesian(data); %read cartesian co-ordinates
+    rot = [cosd(pose(3)) sind(pose(3)) pose(1); -sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
+    tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
+    scatter(tmp(1,:),tmp(2,:),'magenta','.');
 end

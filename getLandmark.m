@@ -75,8 +75,8 @@ w = warning ('off','all');
     while(isempty(unassociated_readings)==false && iteration<timeout && length(unassociated_readings)>consensus && length(unassociated_readings)>num_samples ) %loop while there are still unassocated readings, less than x trails have taken place, and there are still more unassociated readings then the consensus size 
         
         samples=findInitSamples(unassociated_readings,degrees,num_samples); %get random samples within degrees of each other
-%         samples
-%         unassociated_readings
+        
+        
         %figure(1);
         %ex=plot(data); %needed for function below
         %xlim=get(gca,'XLim'); %needed to extend the best fit line created in getLine()
@@ -438,17 +438,20 @@ end
 
 function z=getSampleLine(samples,xlim)
 
-  set(gcf,'Visible','off');
-    set(0,'DefaultFigureVisible','off');
-hold off; 
-mhm=scatter(samples(:,2),samples(:,1));
-h=lsline;
-%p=polyfit(samples(:,2),samples(:,1))
+ % set(gcf,'Visible','off');
+  %  set(0,'DefaultFigureVisible','off');
+%hold off; 
+%mhm=scatter(samples(:,2),samples(:,1));
+%h=lsline;
+p=polyfit(samples(:,2),samples(:,1),2);
 
 
-YDat=h.YData;   
-XDat=h.XData;
 
+
+%YDat=h.YData;   
+%XDat=h.XData;
+XDat=[1;2];
+YDat=[polyval(p,XDat(1));polyval(p,XDat(2))]; 
 
 m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));
 
@@ -500,13 +503,21 @@ if length(idx)>consensus
     
     
     rem=reshape(rem,[],2);
-    set(gcf,'Visible','off');
-    set(0,'DefaultFigureVisible','off');
-    hold off; 
-    merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
-    h=lsline;
-    YDat=h.XData;   
-    XDat=h.YData;
+%     set(gcf,'Visible','off');
+%     set(0,'DefaultFigureVisible','off');
+%     hold off    
+%     merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
+%     h=lsline;
+%     YDat=h.XData;   
+%     XDat=h.YData;
+    
+    
+    p=polyfit(points_to_be_removed(:,1),points_to_be_removed(:,2),2);
+
+    XDat=[1;2];
+    YDat=[polyval(p,XDat(1));polyval(p,XDat(2))];
+    
+    
     m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));
     n= XDat(2)-YDat(2)*m;
     y1=m*xlim(1)+n;

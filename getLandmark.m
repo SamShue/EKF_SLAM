@@ -172,11 +172,13 @@ w = warning ('off','all');
                 
     end
     
-    
+%    if(theta~=0)
+ %       formated_landmark_line_list
+  %  end
     
     for i = 1 : 1 : length(formated_landmark_line_list) % Loops through observed landmarks for this /scan
         
-        rot = [cosd(theta) -sind(theta) x ; sind(theta) cosd(theta) y; 0 0 1];
+        rot = [cosd(theta) sind(theta) x ; -sind(theta) cosd(theta) y; 0 0 1];
         tr = [formated_landmark_line_list(i,1);formated_landmark_line_list(i,2); 1];
         transform = rot*tr;
         final_transform = transform';
@@ -185,6 +187,9 @@ w = warning ('off','all');
         world_line_list = [world_line_list; final_transform];
         
     end
+%    if(theta~=0)
+ %       world_line_list
+  %  end
     %disp('+++++++++++++++++++++++++++');
     %disp(world_line_list);
     %disp('---------------------------');
@@ -395,6 +400,7 @@ w = warning ('off','all');
        %output_confirmed_landmark_list=confirmed_landmark_list;
        output_landmark_list=landmark_list;
        observed_LL=pfLL;
+       clf;
 end
 
 function y = removeNAN(x)
@@ -438,20 +444,22 @@ end
 
 function z=getSampleLine(samples,xlim)
 
- % set(gcf,'Visible','off');
-  %  set(0,'DefaultFigureVisible','off');
-%hold off; 
-%mhm=scatter(samples(:,2),samples(:,1));
-%h=lsline;
-p=polyfit(samples(:,2),samples(:,1),2);
+%  set(gcf,'Visible','off');
+%   set(0,'DefaultFigureVisible','off');
+
+
+hold off;
+mhm=scatter(samples(:,2),samples(:,1));
+h=lsline;
+%ee=polyfit(samples(:,2),samples(:,1),1);
 
 
 
 
-%YDat=h.YData;   
-%XDat=h.XData;
-XDat=[1;2];
-YDat=[polyval(p,XDat(1));polyval(p,XDat(2))]; 
+YDat=h.YData;   
+XDat=h.XData;
+%XDat=[1;2];
+%YDat=[polyval(ee,XDat(1));polyval(ee,XDat(2))]; 
 
 m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));
 
@@ -505,17 +513,17 @@ if length(idx)>consensus
     rem=reshape(rem,[],2);
 %     set(gcf,'Visible','off');
 %     set(0,'DefaultFigureVisible','off');
-%     hold off    
-%     merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
-%     h=lsline;
-%     YDat=h.XData;   
-%     XDat=h.YData;
+     hold off    
+     merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
+     h=lsline;
+     YDat=h.XData;   
+     XDat=h.YData;
     
     
-    p=polyfit(points_to_be_removed(:,1),points_to_be_removed(:,2),2);
+ %  ee=polyfit(points_to_be_removed(:,1),points_to_be_removed(:,2),1);
 
-    XDat=[1;2];
-    YDat=[polyval(p,XDat(1));polyval(p,XDat(2))];
+ %   XDat=[1;2];
+ %   YDat=[polyval(ee,XDat(1));polyval(ee,XDat(2))];
     
     
     m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));

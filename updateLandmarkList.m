@@ -16,21 +16,21 @@ function[updated_landmark_list] = updateLandmarkList(state_vector, input_landmar
 
     landmark_list=input_landmark_list; 
 
-    if(size(state_vector)>3)
+    if(length(state_vector)>3)
         %loop through all of the coordinates in the confirmed landmark list
-        for ii=4:size(state_vector)
+        for ii=4:2:length(state_vector)
             %update the landmark_list coordinates based on the confirmed
             %landmark list coordinates 
-            for jj=1:size(landmark_list)  %FIX: will search through entire list even after it finds the coordinates
-                if(landmark_list(4,jj)==ii)
-                    landmark_list(1,jj)=state_vector(ii);
-                    landmark_list(2,jj)=state_vector(ii+1);
-                    jj=size(landmark_list); %NOT TESTED
+            for jj=1:size(landmark_list,1)  %FIX: will search through entire list even after it finds the coordinates
+                if(landmark_list(jj,4)==((ii-4)/2 + 1))
+                    landmark_list(jj,1)=state_vector(ii);
+                    landmark_list(jj,2)=state_vector(ii+1);
+                    jj=size(landmark_list,1); %NOT TESTED
                 end
             end 
             %each pair of coordinates occupies two locations in the vector
             %so need to iterate location by 2
-            ii=ii+1;
+%             ii=ii+1;
         end
         
     end

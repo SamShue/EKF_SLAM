@@ -9,7 +9,7 @@ function [x,P] = append(x,P,u,observed_LL,R)
     numOfLandmarks = (length(x) - 3) / 2;
     
     for ii = 1:length(observed_LL(:,1))
-    n = length(P);    
+        n = length(P);    
         %check if landmark index is out of bounds
         %and append it if it is
          if observed_LL(ii,3) > numOfLandmarks

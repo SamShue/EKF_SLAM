@@ -1,6 +1,5 @@
 function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdata,pose)
-% disp('ran getLandmark');
-w = warning ('off','all');
+%w = warning ('off','all');
 %GETLANDMARK Determine the location of wall landmarks based on a laser
 %scan and the pose of the turtlebot. Then determine if that wall landmark seen
 %by this sweep of the laser scan has been previously seen by the robot
@@ -178,7 +177,7 @@ w = warning ('off','all');
     
     for i = 1 : 1 : length(formated_landmark_line_list) % Loops through observed landmarks for this /scan
         
-        rot = [cosd(theta) sind(theta) x ; -sind(theta) cosd(theta) y; 0 0 1];
+        rot = [cosd(theta) -sind(theta) x ; sind(theta) cosd(theta) y; 0 0 1];
         tr = [formated_landmark_line_list(i,1);formated_landmark_line_list(i,2); 1];
         transform = rot*tr;
         final_transform = transform';
@@ -345,7 +344,9 @@ w = warning ('off','all');
              pfLL(ii,1)=d;
              %gives angle in degrees between vectors counterclockwise from
              %y1x1 to y2x2
-             deg=atan2d((x1*y2-y1*x2),(x2*x1+y2*y1));
+             %deg=atan2d((x1*y2-y1*x2),(x2*x1+y2*y1));
+             deg=atan2d(y2-y1,x2-x1); 
+             deg=deg-pose(3); 
              pfLL(ii,2)=deg;
               
           end
@@ -395,8 +396,8 @@ w = warning ('off','all');
        
        %basic selection sort for pfLL based on index
        sort(pfLL,4);
-           
-       
+       (pfLL)    
+    
        %output_confirmed_landmark_list=confirmed_landmark_list;
        output_landmark_list=landmark_list;
        observed_LL=pfLL;

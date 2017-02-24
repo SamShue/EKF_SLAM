@@ -1,4 +1,6 @@
 function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdata,pose)
+% disp('ran getLandmark');
+w = warning ('off','all');
 %GETLANDMARK Determine the location of wall landmarks based on a laser
 %scan and the pose of the turtlebot. Then determine if that wall landmark seen
 %by this sweep of the laser scan has been previously seen by the robot
@@ -62,14 +64,14 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
     
     
     laserdata.Ranges=removeNAN(laserdata.Ranges); %remove NAN readings from scan data
-
+    
     counter=1;
     landmark_line_list=zeros(20,2); %prabably want to make this dynamic, it doesnt seem fesable for there to be a case where more then 10 walls will be seen at once
     
     
     unassociated_readings = readCartesian(laserdata); %convert laser readings to cartesian plane and set unassocaited_readings 
     samples=[]; 
-
+    
     while(isempty(unassociated_readings)==false && iteration<timeout && length(unassociated_readings)>consensus && length(unassociated_readings)>num_samples ) %loop while there are still unassocated readings, less than x trails have taken place, and there are still more unassociated readings then the consensus size 
         
         samples=findInitSamples(unassociated_readings,degrees,num_samples); %get random samples within degrees of each other
@@ -521,5 +523,5 @@ end
 
 points=rem;
 land_line=landmark_line;
-
+w = warning ('on','all');
 end 

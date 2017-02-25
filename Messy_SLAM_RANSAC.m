@@ -95,7 +95,7 @@ while(1)
             idx = observed_LL(ii,3);
             
             % if landmark is new, append to x and P
-            [x,P] = append(x,P,u,landmark_list(idx,:),R,pose);
+            [x,P] = append(x,P,u,landmark_list(idx,:),R);
         
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);

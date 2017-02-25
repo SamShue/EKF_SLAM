@@ -1,4 +1,4 @@
-function [x,P] = append(x,P,u,landmark_list,R,pose)
+function [x,P] = append(x,P,u,landmark_list,R)
     % Does landmark need to be appended?
     numOfLandmarks = (length(x) - 3) / 2;
     

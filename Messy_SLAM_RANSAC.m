@@ -63,6 +63,7 @@ while(1)
     if(pose(3)~=0)
     %    landmark_list
     end
+   
 %   Apply EKF to each observed landmark
    
    if(~isempty(observed_LL))
@@ -113,7 +114,22 @@ while(1)
            landmark_list = updateLandmarkList(x, landmark_list);
        end
    else
-       [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q);
+       % initialize EKF variables
+       x = pose;
+       % Covariance Matrix
+        P = eye(length(x)).*0.1; 
+        P(1,1) = 0.1; P(2,2) = 0.1; P(3,3) = 0.1;
+        
+        %Process Noise
+        C = 0.1;
+        W = [u(1)*cosd(x(3)) u(1)*sind(x(3)) u(2)]';
+        Q = zeros(size(P));
+        Q(1:3,1:3) = W*C*W';
+     
+        x(1:3) = [x(1) + u(1)*cosd(x(3)+u(2)); ...
+                  x(2) + u(1)*sind(x(3)+u(2)); ...
+                  x(3) + u(2)];
+        P = F*P*F' + Q;
    end
    
     

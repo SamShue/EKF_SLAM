@@ -113,7 +113,7 @@ while(1)
            landmark_list = updateLandmarkList(x, landmark_list);
        end
    else
-       [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q,landmarkObserved);
+       [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q);
    end
    
     

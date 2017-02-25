@@ -8,12 +8,14 @@ function [x,P] = append(x,P,u,observed_LL,R)
     
     numOfLandmarks = (length(x) - 3) / 2;
     
-    for ii = 1:length(observed_LL(:,1))
+    for ii = 1:size(observed_LL,1)
         n = length(P);    
         %check if landmark index is out of bounds
         %and append it if it is
          if observed_LL(ii,3) > numOfLandmarks
-            x = [x , observed_LL(ii,1:2)];
+            xl = observed_LL(ii,1)*cosd(observed_LL(ii,2)+x(3)) + x(1);
+            yl = observed_LL(ii,1)*sind(observed_LL(ii,2)+x(3)) + x(2);
+            x = [x , xl, yl];
             P(n+1:n+2,n+1:n+2) = jxr*P(1:3,1:3)*jxr' + jz*R*jz';  %C
             P(1:3,n+1:n+2) = P(1:3,1:3)*jxr';                %I
             P(n+1:n+2,1:3) = P(1:3,n+1:n+2)';            %H

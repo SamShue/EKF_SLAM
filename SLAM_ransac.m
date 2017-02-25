@@ -2,8 +2,8 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
+%setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+%setenv('ROS_IP', '192.168.1.104');
 ipaddress = '192.168.1.13';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
@@ -39,7 +39,7 @@ while(1)
     
     % Get pose
     if(ekf_init)
-        pose = x(1:3) + [odom_pose - oldOdomPose];
+        pose = x(1:3) + [odom_pose - reallyOldOdomPose];
         dr_pose = dr_pose + [odom_pose - oldOdomPose];
     else
         % EKF not initialized
@@ -52,20 +52,20 @@ while(1)
         end
     end
     if(pose(3)~=0)
-        landmark_list
-        pose(3)
+     %   landmark_list
+        pose(3);
     end
     [observed_LL,landmark_list]=getLandmark(landmark_list,data,pose);
-    disp(landmark_list)
+    landmark_list
     if(pose(3)~=0)
-        landmark_list
+    %    landmark_list
     end
 %   Apply EKF to each observed landmark
    
    if(~isempty(observed_LL))
        [numOfLandmarks ~] = size(observed_LL);
        if ekf_init == 1
-        [x,P] = append(x,P,u,observed_LL,R);
+            [x,P] = append(x,P,u,observed_LL,R);
        end
        for ii = 1:numOfLandmarks
            % Apply EKF
@@ -81,7 +81,7 @@ while(1)
                    % Covariance Matrix
                     P = eye(length(x)).*0.1; 
                     P(1,1) = 0.1; P(2,2) = 0.1; P(3,3) = 0.1;
-                    R = zeros(2,2); R(1,1) = observed_LL(ii,1)*10; R(2,2) = observed_LL(ii,2)*10;
+                    R = zeros(2,2); R(1,1) = observed_LL(ii,1)*100; R(2,2) = observed_LL(ii,2)*100;
                     [x,P] = append(x,P,u,observed_LL,R);
                      
                     ekf_init = 1;
@@ -89,7 +89,7 @@ while(1)
            else
                % get control vector
                u = [0, 0];
-               R = zeros(2,2); R(1,1) = observed_LL(ii,1)*10; R(2,2) = observed_LL(ii,2)*10;
+               R = zeros(2,2); R(1,1) = observed_LL(ii,1)*100; R(2,2) = observed_LL(ii,2)*100;
            end
            % Filter goes here
            
@@ -125,16 +125,36 @@ while(1)
     if(ekf_init)
         scatter(x(1),x(2),'red','o');
         for ii = 1:((length(x)-3)/2)
-            scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','o');
+            scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','x');
         end
     else
-        scatter(odom_pose(1),odom_pose(2),'green','x'); 
+     %   scatter(odom_pose(1),odom_pose(2),'green','x'); 
         scatter(pose(1),pose(2),'red','o');
     end
     %Plot scan data
+    %scatter(landmark_list(:,1),landmark_list(:,2)); 
     cartes_data = readCartesian(data); %read cartesian co-ordinates
-    rot = [cosd(pose(3)) sind(pose(3)) pose(1); -sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
+    rot = [cosd(pose(3)) -sind(pose(3)) pose(1); sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
     tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
     scatter(tmp(1,:),tmp(2,:),'magenta','.');
     axis([-5 5 -5 5]);
+    scatter(dr_pose(1),dr_pose(2),[],[.5 .5 .5],'o');
+    
+    drawArrow=@(x,y,varargin) quiver (x(1),y(1),x(2)-x(1),y(2)-y(1),0,varargin{:}); hold on   
+    xx=pose(1)+.5*cosd(pose(3));
+    yy=(pose(2)+.5*sind(pose(3))); 
+    x1=[pose(1) xx];
+    y1=[pose(2) yy];
+    drawArrow(x1,y1,'linewidth',3,'color','r');
+    
+%     
+%     drawArrow2=@(x,y,varargin) quiver (x(1),y(1),x(2)-x(1),y(2)-y(1),0,varargin{:}); hold on   
+%     xx2=dr_pose(1)+.5*cosd(dr_pose(3));
+%     yy2=(dr_pose(2)+.5*sind(dr_pose(3))); 
+%     x2=[dr_pose(1) xx2];
+%     y2=[dr_pose(2) yy2];
+%     drawArrow2(x2,y2,'linewidth',3,'color','b');
+    
+    
+    hold off
 end

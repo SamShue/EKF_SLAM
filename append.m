@@ -6,7 +6,7 @@ function [x,P] = append(x,P,u,landmark_list,R,pose)
         n = length(P);  
         
         % Append landmark to x
-        x = [x , landmark_list(ii,1), landmark_list(ii,2)];
+        x = [x , landmark_list(1), landmark_list(2)];
         
         % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
         jxr = [1 0 -u(1)*sind(x(3));...

@@ -40,7 +40,7 @@ while(1)
     angles = quat2eul([quat.W quat.X quat.Y quat.Z]);
     theta = rad2deg(angles(1));
     
-    rot_deg = -90;  % Turtlebot's heading may be in y direction
+    rot_deg = 0;  % Turtlebot's heading may be in y direction
     % Rotate frame so heading is in x.
     pr = [cos(rot_deg) -sind(rot_deg); sind(rot_deg) cos(rot_deg)]*[x_o,y_o]';
     
@@ -52,7 +52,7 @@ while(1)
     % Estimate Robot's pose
     %======================================================================
 
-    if(~exist('pose'))
+    if(~exist('x'))
         oldOdomPose = odomPose;
         % State Vector
         x = [0,0,0];
@@ -68,7 +68,7 @@ while(1)
         u = [delta_D, delta_Theta];
         
         % Get noise covariance matrix for control signal
-        C = 0.1;    % Noise Error Constant
+        C = 0.5;    % Noise Error Constant
         W = [u(1)*cosd(x(3)) u(1)*sind(x(3)) u(2)]';
         Q = zeros(size(P));
         Q(1:3,1:3) = W*C*W';
@@ -95,7 +95,8 @@ while(1)
             idx = observed_LL(ii,3);
             
             % if landmark is new, append to x and P
-            [x,P] = append(x,P,u,landmark_list(idx,:),R);
+            idx2 = find(landmark_list(:,4)==idx);
+            [x,P] = append(x,P,u,landmark_list(idx2,:),R);
         
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);

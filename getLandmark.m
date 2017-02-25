@@ -40,12 +40,13 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
 
     timeout= 5; %number of times program will search through a laserscan data before stopping
     iteration=1; %counts the current number that the program has looped
-    num_samples =10; %number of points to be initally sampled and used to create inital line of best fit
+    num_samples =25; %number of points to be initally sampled and used to create inital line of best fit
     degrees = 5;%degree space that inital samples can be taken from (5 on both sides)
     distance=.1; %max distance that a point can be away from inital line of best fit and still be included in the line
-    consensus = 200; % number of points needed to be near line of best fit in order for line to be approved 
+    consensus = 250; % number of points needed to be near line of best fit in order for line to be approved 
     confirmed_consensus=10; %number of times a wall must be seen before it will be indexed on the state vector
-     
+    
+    association_threshold=1;   % Threshold value for reassociated observed landmarks to recorded landmarks
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
     
@@ -260,7 +261,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
                     x2 = landmark_list(n,1);
                     y2 = landmark_list(n,2);
                     distance = sqrt(((x2-x1)^2)+((y2-y1)^2));
-                    if distance<.5
+                    if distance < association_threshold
                         checker=1;
                       %  landmark_list(n,:)=possible_landmark_list(m,:); %seems....odd
                           
@@ -395,7 +396,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
        
        
        %basic selection sort for pfLL based on index
-       sort(pfLL,4);
+       pfLL = sort(pfLL,4); %added assignment after sort - Sam
        (pfLL)    
     
        %output_confirmed_landmark_list=confirmed_landmark_list;

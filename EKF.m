@@ -1,15 +1,17 @@
-function [x_new_new, P] = EKF(x,P,z,u,idx,R,Q)
+function [x_new_new, P] = EKF(x,P,z,u,idx,R,Q,landmarkObserved)
     %Prediction
     [x_new,F] = f(x,u);
     P = F*P*F' + Q;
     
-    % Measurement Update
-    [x_mm,H] = h(x_new,idx);
-    y = z' - x_mm';
-    S = H*P*H' + R;
-    K = P*H'*(S\eye(size(S)));
-    x_new_new = x_new + (K*y)';
-    P = (eye(size(K*H)) - K*H)*P;
+    if(landmarkObserved == 1)
+        % Measurement Update
+        [x_mm,H] = h(x_new,idx);
+        y = z' - x_mm';
+        S = H*P*H' + R;
+        K = P*H'*(S\eye(size(S)));
+        x_new_new = x_new + (K*y)';
+        P = (eye(size(K*H)) - K*H)*P;
+    end
 end 
 
 function [x_new,F] = f(x,u)

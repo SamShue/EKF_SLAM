@@ -27,15 +27,14 @@ while(1)
     p = odomdata.Pose.Pose;
     x_o = p.Position.X;
     y_o = p.Position.Y;
+   % z = p.Position.Z;
     
     quat = p.Orientation;
     angles = quat2eul([quat.W quat.X quat.Y quat.Z]);
     theta = rad2deg(angles(1));
     
-    rot_deg = -90;  % Turtlebot's heading may be in y direction
-    % Rotate frame so heading is in x.
-    pr = [cos(rot_deg) -sind(rot_deg); sind(rot_deg) cos(rot_deg)]*[x_o,y_o]';
-    odom_pose=[pr(1),pr(2),theta];
+    [x_o, y_
+    odom_pose=[x_o,y_o,theta];
     odomTime = odomdata.Header.Stamp.Sec;
     
     % Get pose

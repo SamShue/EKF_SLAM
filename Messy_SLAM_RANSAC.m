@@ -16,7 +16,7 @@ landmark_list=[]; %this is an input to the function and can be either empty or f
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
 %odom = rossubscriber('/robot_pose_ekf/odom_combined');  %initialize a subscriber node to odomotry data
 odom = rossubscriber('/odom');
-
+landmarkObserved = 0;
 ekf_init = 0;
 while(1)
     % Get sensor information
@@ -105,13 +105,15 @@ while(1)
             if sum(u(1)) > 0.01
                 x
             end
-           [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q);
+           [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q,landmark);
            reallyOldOdomPose = odom_pose;
            if(isnan(x(4)))
                x
            end
            landmark_list = updateLandmarkList(x, landmark_list);
        end
+   else
+       [x,P] = EKF(x,P,observed_LL(ii,1:2),u,observed_LL(ii,3),R,Q,landmarkObserved);
    end
    
     

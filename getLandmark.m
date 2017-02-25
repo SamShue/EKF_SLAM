@@ -396,8 +396,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
        
        
        %basic selection sort for pfLL based on index
-       pfLL = sort(pfLL,4); %added assignment after sort - Sam
-       (pfLL)    
+       pfLL = sort(pfLL,4); %added assignment after sort - Sam   
     
        %output_confirmed_landmark_list=confirmed_landmark_list;
        output_landmark_list=landmark_list;

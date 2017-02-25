@@ -2,8 +2,8 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-%setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-%setenv('ROS_IP', '192.168.1.104');
+% setenv('ROS_HOSTNAME', 'COE-Custom');
+% setenv('ROS_IP', '192.168.1.1');
 ipaddress = '192.168.1.13';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
@@ -85,9 +85,6 @@ while(1)
     
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))
-        % Append any new landmarks observed to state vector
-        [x,P] = append(x,P,u,landmark_list,R,pose);
-        
         [numOfLandmarks ~] = size(observed_LL);
         for ii = 1:numOfLandmarks
             % Measurement vector
@@ -97,6 +94,9 @@ while(1)
             % Landmark index
             idx = observed_LL(ii,3);
             
+            % if landmark is new, append to x and P
+            [x,P] = append(x,P,u,landmark_list(idx,:),R,pose);
+        
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);
         end

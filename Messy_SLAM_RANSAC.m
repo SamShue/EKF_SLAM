@@ -30,6 +30,7 @@ while(1)
     %======================================================================
     laserData  = receive(laser); %recieve a laser scan 
     odomData = receive(odom);
+    % Check to see if sensor data is new; if not, wait for new data
     while(laserData.Header.Stamp.Sec == laserTS)
         laserData = receive(laser);
     end
@@ -68,6 +69,7 @@ while(1)
 
     if(~exist('x'))
         oldOdomPose = odomPose;
+        oldOdomData = odomData;
         % State Vector
         x = [0,0,0];
         % Covariance Matrix
@@ -78,7 +80,9 @@ while(1)
         % Get control vector (change in linear displacement and rotation)to
         % estimate current pose of the robot
         delta_D = sqrt((odomPose(1) - oldOdomPose(1))^2 + (odomPose(2) - oldOdomPose(2))^2);
-        delta_Theta = odomPose(3) - oldOdomPose(3);
+        angles = quat2eul(oldOdomData.Pose.Pose.Orientation - odomData.Pose.Pose.Orientation);
+        delta_Theta = deg2rad(angles(1));
+%         delta_Theta = odomPose(3) - oldOdomPose(3);
         u = [delta_D, delta_Theta];
         
         % Get noise covariance matrix for control signal
@@ -92,6 +96,7 @@ while(1)
         x(3)
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
+        oldOdomData = odomData;
     end
     
     % Search for landmarks

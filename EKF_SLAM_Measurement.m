@@ -2,6 +2,11 @@ function [x_new, P_new] = EKF_SLAM_Measurement(x,P,z,R,idx)
 
     [x_mm,H] = h(x,idx);
     y = z' - x_mm';
+    y(1) = z(1)' - x_mm(1)';
+    if y(1) > 2
+        y
+    end
+    y(2) = wrapTo360(z(2)) - wrapTo360(x_mm(2));
     S = H*P*H' + R;
     K = P*H'*(S\eye(size(S)));
     x_new = x + (K*y)';

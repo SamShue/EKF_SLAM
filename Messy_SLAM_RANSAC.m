@@ -30,11 +30,11 @@ while(1)
     %======================================================================
     laserData  = receive(laser); %recieve a laser scan 
     odomData = receive(odom);
-    while(laserData.Header.Stamp.Sec ~= laserTS)
+    while(laserData.Header.Stamp.Sec == laserTS)
         laserData = receive(laser);
     end
     laserTS = laserData.Header.Stamp.Sec;
-    while(odomData.Header.Stamp.Sec ~= odomTS)
+    while(odomData.Header.Stamp.Sec == odomTS)
         odomData = receive(odom);
     end
     odomTS = odomData.Header.Stamp.Sec;
@@ -59,7 +59,7 @@ while(1)
     pr = [cos(rot_deg) -sind(rot_deg); sind(rot_deg) cos(rot_deg)]*[x_o,y_o]';
     
     % store current position in terms of x, y, theta (degrees) as ROS sees
-    odomPose = [pr(1),pr(2),wrapTo360(theta)];
+    odomPose = [pr(1),pr(2),theta];
     % End calculate odometery
     %----------------------------------------------------------------------
     
@@ -79,7 +79,7 @@ while(1)
         % estimate current pose of the robot
         delta_D = sqrt((odomPose(1) - oldOdomPose(1))^2 + (odomPose(2) - oldOdomPose(2))^2);
         delta_Theta = odomPose(3) - oldOdomPose(3);
-        u = [delta_D, wrapTo360(delta_Theta)];
+        u = [delta_D, delta_Theta];
         
         % Get noise covariance matrix for control signal
         C = 0.5;    % Noise Error Constant
@@ -89,14 +89,14 @@ while(1)
         
         % Update position estimate
         [x,P] = EKF_SLAM_Prediction(x,P,u,Q);
-        
+        x(3)
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
     end
     
     % Search for landmarks
     [observed_LL,landmark_list]=getLandmark(landmark_list,laserData,x(1:3));
-    observed_LL
+    observed_LL = [];
     
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))

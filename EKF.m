@@ -6,7 +6,8 @@ function [x_new_new, P] = EKF(x,P,z,u,idx,R,Q)
  
     % Measurement Update
     [x_mm,H] = h(x_new,idx);
-    y = z' - x_mm';
+    y(1) = z(1)' - x_mm(1)';
+    y(2) = wrapTo360(z(2)) - wrapTo360(x_mm(2));
     S = H*P*H' + R;
     K = P*H'*(S\eye(size(S)));
     x_new_new = x_new + (K*y)';

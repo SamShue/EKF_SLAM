@@ -80,7 +80,7 @@ while(1)
         % Get control vector (change in linear displacement and rotation)to
         % estimate current pose of the robot
         delta_D = sqrt((odomPose(1) - oldOdomPose(1))^2 + (odomPose(2) - oldOdomPose(2))^2);
-        angles = quat2eul(oldOdomData.Pose.Pose.Orientation - odomData.Pose.Pose.Orientation);
+        angles = quat2eul(oldOdomData.Pose.Pose.Orientation*quatInv(odomData.Pose.Pose.Orientation));
         delta_Theta = deg2rad(angles(1));
 %         delta_Theta = odomPose(3) - oldOdomPose(3);
         u = [delta_D, delta_Theta];
@@ -159,4 +159,8 @@ while(1)
     %----------------------------------------------------------------------    
     
     hold off
+end
+
+function q2 = quatInv(q1)
+    q2 = q1.*[-1, -1, -1, 1]./sum(q1.*q1);
 end

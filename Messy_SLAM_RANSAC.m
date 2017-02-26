@@ -22,13 +22,22 @@ laser = rossubscriber('/scan');      %initialize a subscriber node to kinect las
 %odom = rossubscriber('/robot_pose_ekf/odom_combined');  %initialize a subscriber node to odomotry data
 odom = rossubscriber('/odom');
 
-landmarkObserved = 0;
 ekf_init = 0;
+odomTS = 0;
+laserTS = 0;
 while(1)
     % Receive ROS Topics
     %======================================================================
     laserData  = receive(laser); %recieve a laser scan 
     odomData = receive(odom);
+    while(laserData.Header.Stamp.Sec ~= laserTS)
+        laserData = receive(laser);
+    end
+    laserTS = laserData.Header.Stamp.Sec;
+    while(odomData.Header.Stamp.Sec ~= odomTS)
+        odomData = receive(odom);
+    end
+    odomTS = odomData.Header.Stamp.Sec;
     % End receive ROS topics
     %----------------------------------------------------------------------
     

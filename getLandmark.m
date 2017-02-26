@@ -316,14 +316,18 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
          end
          
       
-      for i=1:size(landmark_list)
+      for ii=1:size(landmark_list)
          % disp('land length');
          % disp(size(landmark_list));
-          if(landmark_list(i,3)>confirmed_consensus && landmark_list(i,4)==0)
+          if(landmark_list(ii,3)>confirmed_consensus && landmark_list(ii,4)==0)
             %landmark_list(i,4)=size(confirmed_landmark_list,1)+1;
             %confirmed_landmark_list=[confirmed_landmark_list; landmark_list(i,1); landmark_list(i,2)] ;
             
-            landmark_list(i,4)=max(landmark_list(:,4))+1;
+            
+            
+            
+            pfLL_index=[pfLL_index,ii];
+            landmark_list(ii,4)=max(landmark_list(:,4))+1;
             
           end
       end
@@ -547,4 +551,4 @@ end
 points=rem;
 land_line=landmark_line;
 w = warning ('on','all');
-end 
+end

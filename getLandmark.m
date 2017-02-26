@@ -154,7 +154,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
     
     x = pose(1);
     y = pose(2);
-    theta = pose(3);
+    theta =wrapTo360(pose(3));
    
    % [x,y,z];
 
@@ -405,6 +405,9 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
        %output_confirmed_landmark_list=confirmed_landmark_list;
        output_landmark_list=landmark_list;
        observed_LL=pfLL;
+       if(~isempty(observed_LL))
+        observed_LL(:,2) = wrapTo360(observed_LL(:,2));
+       end
        clf;
 end
 

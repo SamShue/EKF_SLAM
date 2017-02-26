@@ -4,6 +4,11 @@ close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
 % setenv('ROS_HOSTNAME', 'COE-Custom');
 % setenv('ROS_IP', '192.168.1.1');
+
+% PC Specific environment variables. Comment out when not needed.
+setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+setenv('ROS_IP', '192.168.1.104');
+
 ipaddress = '192.168.1.13';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
@@ -45,7 +50,7 @@ while(1)
     pr = [cos(rot_deg) -sind(rot_deg); sind(rot_deg) cos(rot_deg)]*[x_o,y_o]';
     
     % store current position in terms of x, y, theta (degrees) as ROS sees
-    odomPose = [pr(1),pr(2),theta];
+    odomPose = [pr(1),pr(2),wrapTo360(theta)];
     % End calculate odometery
     %----------------------------------------------------------------------
     
@@ -65,7 +70,7 @@ while(1)
         % estimate current pose of the robot
         delta_D = sqrt((odomPose(1) - oldOdomPose(1))^2 + (odomPose(2) - oldOdomPose(2))^2);
         delta_Theta = odomPose(3) - oldOdomPose(3);
-        u = [delta_D, delta_Theta];
+        u = [delta_D, wrapTo360(delta_Theta)];
         
         % Get noise covariance matrix for control signal
         C = 0.5;    % Noise Error Constant
@@ -82,6 +87,7 @@ while(1)
     
     % Search for landmarks
     [observed_LL,landmark_list]=getLandmark(landmark_list,laserData,x(1:3));
+    observed_LL
     
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))

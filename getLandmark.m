@@ -40,13 +40,13 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
 
     timeout= 5; %number of times program will search through a laserscan data before stopping
     iteration=1; %counts the current number that the program has looped
-    num_samples =25; %number of points to be initally sampled and used to create inital line of best fit
+    num_samples =20; %number of points to be initally sampled and used to create inital line of best fit
     degrees = 5;%degree space that inital samples can be taken from (5 on both sides)
     distance=.1; %max distance that a point can be away from inital line of best fit and still be included in the line
     consensus = 250; % number of points needed to be near line of best fit in order for line to be approved 
     confirmed_consensus=10; %number of times a wall must be seen before it will be indexed on the state vector
     
-    association_threshold=1;   % Threshold value for reassociated observed landmarks to recorded landmarks
+    association_threshold=0.5;   % Threshold value for reassociated observed landmarks to recorded landmarks
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
  
     

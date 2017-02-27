@@ -35,15 +35,6 @@ while(1)
     %======================================================================
     laserData  = receive(laser); %recieve a laser scan 
     odomData = receive(odom);
-    % Check to see if sensor data is new; if not, wait for new data
-%     while(laserData.Header.Stamp.Sec == laserTS)
-%         laserData = receive(laser);
-%     end
-%     laserTS = laserData.Header.Stamp.Sec;
-%     while(odomData.Header.Stamp.Sec == odomTS)
-%         odomData = receive(odom);
-%     end
-%     odomTS = odomData.Header.Stamp.Sec;
     % End receive ROS topics
     %----------------------------------------------------------------------
     
@@ -85,14 +76,7 @@ while(1)
         % Get control vector (change in linear displacement and rotation)to
         % estimate current pose of the robot
         delta_D = sqrt((odomPose(1) - oldOdomPose(1))^2 + (odomPose(2) - oldOdomPose(2))^2);
-%         if sum(getQuat(oldOdomData.Pose.Pose.Orientation) - getQuat(odomData.Pose.Pose.Orientation)) ~= 0
-%             angles = quat2eul(getQuat(oldOdomData.Pose.Pose.Orientation).*quatInv(getQuat(odomData.Pose.Pose.Orientation)));
-%             delta_Theta = deg2rad(angles(1));
-%         else
-%             delta_Theta = 0;
-%         end
         delta_Theta = rad2deg(angdiff(deg2rad(oldOdomPose(3)),deg2rad(odomPose(3))));
-%         delta_Theta = odomPose(3) - oldOdomPose(3);
         u = [delta_D, delta_Theta];
         
         % Get noise covariance matrix for control signal
@@ -102,7 +86,6 @@ while(1)
         
         % Update position estimate
         [x,P] = EKF_SLAM_Prediction(x,P,u,Q);
-%         x(3)
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
         oldOdomData = odomData;

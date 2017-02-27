@@ -2,20 +2,15 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-% setenv('ROS_HOSTNAME', 'COE-Custom');
-% setenv('ROS_IP', '192.168.1.1');
 
 % PC Specific environment variables. Comment out when not needed.
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
+% setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+% setenv('ROS_IP', '192.168.1.104');
 
-ipaddress = '192.168.1.13';         %define ipadress of turtlebot
-rosinit(ipaddress)                  %initate ros using turtlebot IP
-
-%final_landmark_list=[]; 
-landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
-
-%landFig=figure(2);
+% Robot network variables
+ipaddress = 'http://192.168.1.13:11311';         %define ipadress of turtlebot
+setenv('ROS_MASTER_URI', ipaddress);
+rosinit(ipaddress,'NodeHost','192.168.1.133')                  %initate ros using turtlebot IP
 
 %still needs to be subscribed and able to access laser and odom; 
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
@@ -26,7 +21,7 @@ odom = rossubscriber('/odom');
 C = 0.2;    % Process Noise Constant
 Rc = 1;   % Measurement Noise Constant
 
-
+landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
 ekf_init = 0;
 odomTS = 0;
 laserTS = 0;

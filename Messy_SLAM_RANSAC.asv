@@ -2,20 +2,19 @@ clc;                                %clear command window
 clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
-% setenv('ROS_HOSTNAME', 'COE-Custom');
-% setenv('ROS_IP', '192.168.1.1');
 
 % PC Specific environment variables. Comment out when not needed.
-setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-setenv('ROS_IP', '192.168.1.104');
+% setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
+% setenv('ROS_IP', '192.168.1.104');
+setenv('ROS_HOSTNAME', 'COE-Custom');
+setenv('ROS_IP', '192.168.1.1');
 
-ipaddress = '192.168.1.13';         %define ipadress of turtlebot
-rosinit(ipaddress)                  %initate ros using turtlebot IP
+% Robot network variables
+ipaddress = 'http://192.168.1.13:11311';         %define ipadress of turtlebot
+setenv('ROS_MASTER_URI', ipaddress);
+rosinit(ipaddress,'NodeHost','192.168.1.1')                  %initate ros using turtlebot IP
 
-%final_landmark_list=[]; 
 landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
-
-%landFig=figure(2);
 
 %still needs to be subscribed and able to access laser and odom; 
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
@@ -86,7 +85,6 @@ while(1)
         
         % Update position estimate
         [x,P] = EKF_SLAM_Prediction(x,P,u,Q);
-%         x(3)
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
         oldOdomData = odomData;

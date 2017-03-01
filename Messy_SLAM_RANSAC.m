@@ -113,13 +113,12 @@ while(1)
     % set(gcf,'Visible','on');
     % set(0,'DefaultFigureVisible','on');
     clf; hold on;
-
-    scatter(x(1),x(2),'red','o');
+    % Plot robot
+    drawRobot(x(1),x(2),x(3),0.5);
+    % Plot landmarks
     for ii = 1:((length(x)-3)/2)
         scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','x');
     end
-
-    
     % Plot "unofficial" landmarks
     idx = find(landmark_list(:,4) == 0);
     scatter(landmark_list(idx,1),landmark_list(idx,2),[],[.5 .5 .5],'x');
@@ -137,12 +136,6 @@ while(1)
     scatter(tmp(1,:),tmp(2,:),'magenta','.');
     axis([-5 5 -5 5]);
     
-    drawArrow=@(x,y,varargin) quiver (x(1),y(1),x(2)-x(1),y(2)-y(1),0,varargin{:}); hold on   
-    xx=x(1)+.5*cosd(x(3));
-    yy=(x(2)+.5*sind(x(3))); 
-    x1=[x(1) xx];
-    y1=[x(2) yy];
-    drawArrow(x1,y1,'linewidth',3,'color','r');
     % End Plot Junk
     %----------------------------------------------------------------------    
     

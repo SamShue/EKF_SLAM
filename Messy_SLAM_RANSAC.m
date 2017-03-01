@@ -3,10 +3,6 @@ clear all;
 close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
 
-% PC Specific environment variables. Comment out when not needed.
-% setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
-% setenv('ROS_IP', '192.168.1.104');
-
 % Robot network variables
 ipaddress = 'http://192.168.1.13:11311';         %define ipadress of turtlebot
 setenv('ROS_MASTER_URI', ipaddress);

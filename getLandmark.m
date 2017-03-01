@@ -351,7 +351,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
              %y1x1 to y2x2
              %deg=atan2d((x1*y2-y1*x2),(x2*x1+y2*y1));
              deg=atan2d(y2-y1,x2-x1); 
-             deg=deg-pose(3); 
+             deg=deg-pose(3);
              pfLL(ii,2)=deg;
               
           end

@@ -9,10 +9,10 @@ function [x,P] = append(x,P,u,landmark_list,R)
         x = [x , landmark_list(1), landmark_list(2)];
         
         % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
-        jxr = [1 0 -u(1)*sind(x(3));...
-            0 1 u(1)*cosd(x(3))];
+        jxr = [1 0 -u(1)*sind(x(3)); ...
+               0 1  u(1)*cosd(x(3))];
         
-        jz = [cosd(u(2)) -u(1)*sind(u(2));...
+        jz = [cosd(u(2)) -u(1)*sind(u(2)); ...
               sind(u(2)) u(1)*cosd(u(2))];
         
         % Append landmark to P (again as defined by SLAM for Dummies)

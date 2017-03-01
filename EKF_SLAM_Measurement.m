@@ -3,7 +3,10 @@ function [x_new, P_new] = EKF_SLAM_Measurement(x,P,z,R,idx)
     [x_mm,H] = h(x,idx);
     y = z' - x_mm';
 %     y(1) = z(1)' - x_mm(1)';
-%     y(2) = wrapTo360(z(2)) - wrapTo360(x_mm(2));
+    y(2) = wrapTo360(z(2)) - wrapTo360(x_mm(2));
+%     if(y(2) > 2)
+%         x
+%     end
     S = H*P*H' + R;
     K = P*H'*(S\eye(size(S)));
     x_new = x + (K*y)';
@@ -15,7 +18,7 @@ function [x_measure,H] = h(x,idx)
     lmy = x((idx-1)*2 + 5);
     % idx is the index of the observed node
     x_measure(1) = sqrt((x(1) - lmx)^2 + (x(2) - lmy)^2);
-    x_measure(2) = atand((lmy - x(2))/(lmx - x(1))) - x(3);
+    x_measure(2) = atand((lmy - x(2))/(lmx - x(1))) - wrapTo360(x(3));
     % Jacobian of h
     H = zeros(2,length(x));
     H(1,1) = (x(1) - lmx)/sqrt((lmx - x(1))^2 + (lmy - x(2))^2);

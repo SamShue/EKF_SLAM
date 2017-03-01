@@ -15,7 +15,7 @@ odom = rossubscriber('/odom');
 
 % EKF Parameter Values
 C = 0.2;    % Process Noise Constant
-Rc = 1;   % Measurement Noise Constant
+Rc = 100;   % Measurement Noise Constant
 
 landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
 ekf_init = 0;
@@ -77,6 +77,7 @@ while(1)
         
         % Update position estimate
         [x,P] = EKF_SLAM_Prediction(x,P,u,Q);
+        x(3) = wrapTo360(x(3));
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
         oldOdomData = odomData;
@@ -84,7 +85,7 @@ while(1)
     
     % Search for landmarks
     [observed_LL,landmark_list]=getLandmark(landmark_list,laserData,x(1:3));
-%     observed_LL = [];
+
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))
         [numOfLandmarks ~] = size(observed_LL);
@@ -114,7 +115,7 @@ while(1)
     % set(0,'DefaultFigureVisible','on');
     clf; hold on;
     % Plot robot
-    drawRobot(x(1),x(2),x(3),0.5);
+    drawRobot(x(1),x(2),x(3),0.25);
     % Plot landmarks
     for ii = 1:((length(x)-3)/2)
         scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','x');
@@ -122,10 +123,16 @@ while(1)
     % Plot "unofficial" landmarks
     idx = find(landmark_list(:,4) == 0);
     scatter(landmark_list(idx,1),landmark_list(idx,2),[],[.5 .5 .5],'x');
-    
+    % Plot observed landmarks
     if(~isempty(observed_LL))
-        % Plot observed landmarks
+        % Plot observed landmark locations
         scatter(landmark_list(idx2,1),landmark_list(idx2,2),'o','b');
+        % Plot observed landmark distances and orientations
+        lineptsx = x(1) + observed_LL(:,1).*cosd(observed_LL(:,2) + x(3));
+        lineptsy = x(2) + observed_LL(:,1).*sind(observed_LL(:,2) + x(3));
+        for jj = 1:length(lineptsx)
+            plot([x(1) lineptsx(jj)],[x(2) lineptsy(jj)],'red');
+        end
     end
     
     %Plot scan data

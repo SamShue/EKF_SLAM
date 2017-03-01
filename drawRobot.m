@@ -1,5 +1,5 @@
 function drawRobot(x,y,theta,radius)
-
+    theta = theta - 90;
     % Get points for circle
     angles = 0:5:360;
     x_c = [cosd(angles)',sind(angles)'];

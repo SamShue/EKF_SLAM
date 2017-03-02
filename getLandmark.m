@@ -42,7 +42,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
     iteration=1; %counts the current number that the program has looped
     num_samples =20; %number of points to be initally sampled and used to create inital line of best fit
     degrees = 5;%degree space that inital samples can be taken from (5 on both sides)
-    distance=.1; %max distance that a point can be away from inital line of best fit and still be included in the line
+    distance=.25; %max distance that a point can be away from inital line of best fit and still be included in the line
     consensus = 250; % number of points needed to be near line of best fit in order for line to be approved 
     confirmed_consensus=10; %number of times a wall must be seen before it will be indexed on the state vector
     
@@ -270,7 +270,7 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
                       %check to see if the landmark that was observed has
                       %already been confirmed, if so then add it to the
                       %pfLL index
-                      if(landmark_list(n,3)>confirmed_consensus&&landmark_list(n,4)~=0)
+                      if(landmark_list(n,3)>confirmed_consensus && landmark_list(n,4)~=0)
                         pfLL_index=[pfLL_index,n];
                       end
                       %count
@@ -350,8 +350,11 @@ function [observed_LL, output_landmark_list]= getLandmark(landmark_list,laserdat
              %gives angle in degrees between vectors counterclockwise from
              %y1x1 to y2x2
              %deg=atan2d((x1*y2-y1*x2),(x2*x1+y2*y1));
-             deg=atan2d(y2-y1,x2-x1); 
-             deg=deg-pose(3);
+             % (x2,y2) = landmark pos, (x1,y1) = robot pos
+%              deg = atand((y2-y1)/(x2-x1)) - pose(3);
+             deg=atan2d(y2-y1,x2-x1) - pose(3); 
+%              deg=wrapTo360(wrapTo360(deg) - wrapTo360(pose(3)));
+%              deg = deg - pose(3);
              pfLL(ii,2)=deg;
               
           end

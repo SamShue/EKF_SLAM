@@ -15,7 +15,7 @@ odom = rossubscriber('/odom');
 
 % EKF Parameter Values
 C = 0.2;    % Process Noise Constant
-Rc = 100;   % Measurement Noise Constant
+Rc = [1000,100];   % Measurement Noise Constants
 
 landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
 ekf_init = 0;
@@ -40,11 +40,11 @@ while(1)
     
     quat = p.Orientation;
     angles = quat2eul([quat.W quat.X quat.Y quat.Z]);
-    theta = rad2deg(angles(1));
+    theta = wrapTo360(rad2deg(angles(1)));
     
     rot_deg = 0;  % Turtlebot's heading may be in y direction
     % Rotate frame so heading is in x.
-    pr = [cos(rot_deg) -sind(rot_deg); sind(rot_deg) cos(rot_deg)]*[x_o,y_o]';
+    pr = [cosd(rot_deg) -sind(rot_deg); sind(rot_deg) cosd(rot_deg)]*[x_o,y_o]';
     
     % store current position in terms of x, y, theta (degrees) as ROS sees
     odomPose = [pr(1),pr(2),theta];
@@ -93,7 +93,7 @@ while(1)
             % Measurement vector
             z = [observed_LL(ii,1), observed_LL(ii,2)];
             % Measurement noise covariance matrix
-            R = zeros(2,2); R(1,1) = observed_LL(ii,1)*Rc; R(2,2) = observed_LL(ii,2)*Rc;
+            R = zeros(2,2); R(1,1) = observed_LL(ii,1)*Rc(1); R(2,2) = observed_LL(ii,2)*Rc(2);
             % Landmark index
             idx = observed_LL(ii,3);
             

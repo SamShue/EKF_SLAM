@@ -4,7 +4,7 @@ close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
 %setenv('ROS_HOSTNAME', 'rahul-ThinkPad-S3-Yoga-14');
 %setenv('ROS_IP', '192.168.1.104');
-ipaddress = '192.168.1.13';         %define ipadress of turtlebot
+ipaddress = '192.168.1.16';         %define ipadress of turtlebot
 rosinit(ipaddress)                  %initate ros using turtlebot IP
 
 %final_landmark_list=[]; 

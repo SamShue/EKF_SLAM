@@ -4,10 +4,10 @@ close all;                          %close all figures
 rosshutdown                         %close current ros incase it is already initalized 
 
 % Robot network variables
-ipaddress = 'http://192.168.1.13:11311';         %define ipadress of turtlebot
-setenv('ROS_MASTER_URI', ipaddress);
-rosinit(ipaddress,'NodeHost','192.168.1.133')                  %initate ros using turtlebot IP
-
+ipaddress = 'http://192.168.1.16:11311';         %define ipadress of turtlebot
+%setenv('ROS_MASTER_URI', ipaddress);
+%rosinit(ipaddress,'NodeHost','192.168.1.133')                  %initate ros using turtlebot IP
+rosinit('192.168.1.13');
 %still needs to be subscribed and able to access laser and odom; 
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
 %odom = rossubscriber('/robot_pose_ekf/odom_combined');  %initialize a subscriber node to odomotry data
@@ -15,7 +15,7 @@ odom = rossubscriber('/odom');
 
 % EKF Parameter Values
 C = 0.2;    % Process Noise Constant
-Rc = [1000,100];   % Measurement Noise Constants
+Rc = [10,1];   % Measurement Noise Constants
 
 landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
 ekf_init = 0;
@@ -84,8 +84,9 @@ while(1)
     end
     
     % Search for landmarks
-    [observed_LL,landmark_list]=getLandmark(landmark_list,laserData,x(1:3));
-
+    [observed_LL,landmark_list]=updatedGetLandmark(landmark_list,laserData,x(1:3));
+    
+    observed_LL
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))
         [numOfLandmarks ~] = size(observed_LL);
@@ -98,8 +99,9 @@ while(1)
             idx = observed_LL(ii,3);
             
             % if landmark is new, append to x and P
-            idx2 = find(landmark_list(:,4)==idx);
-            [x,P] = append(x,P,u,landmark_list(idx2,:),R);
+            temp=[landmark_list(:).index];
+            idx2 = find(temp(:)==idx);
+            [x,P] = append(x,P,u,landmark_list(idx2),R);
         
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);
@@ -120,31 +122,93 @@ while(1)
     for ii = 1:((length(x)-3)/2)
         scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','x');
     end
-    % Plot "unofficial" landmarks
-    idx = find(landmark_list(:,4) == 0);
-    scatter(landmark_list(idx,1),landmark_list(idx,2),[],[.5 .5 .5],'x');
-    % Plot observed landmarks
-    if(~isempty(observed_LL))
-        % Plot observed landmark locations
-        scatter(landmark_list(idx2,1),landmark_list(idx2,2),'o','b');
-        % Plot observed landmark distances and orientations
-        lineptsx = x(1) + observed_LL(:,1).*cosd(observed_LL(:,2) + x(3));
-        lineptsy = x(2) + observed_LL(:,1).*sind(observed_LL(:,2) + x(3));
-        for jj = 1:length(lineptsx)
-            plot([x(1) lineptsx(jj)],[x(2) lineptsy(jj)],'red');
-        end
-    end
-    
-    %Plot scan data
-    %scatter(landmark_list(:,1),landmark_list(:,2)); 
+%      % Plot "unofficial" landmarks
+      temp=[landmark_list(:).index];
+      idx = find(temp(:) == 0);
+      temp=[];
+      for mm=1:size(idx,1)
+         temp=[temp;landmark_list(idx(mm)).loc(1),landmark_list(idx(mm)).loc(1)]; 
+      end
+      if(~isempty(idx))
+        %scatter(landmark_list(idx).loc(1),landmark_list(idx).loc(2),[],[.5 .5 .5],'x');
+        scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
+      end
+%      % Plot observed landmarks
+      if(~isempty(observed_LL))
+          % Plot observed landmark locations
+          scatter(landmark_list(idx2).loc(1),landmark_list(idx2).loc(2),'o','b');
+          % Plot observed landmark distances and orientations
+          lineptsx = x(1) + observed_LL(:,1).*cosd(observed_LL(:,2) + x(3));
+          lineptsy = x(2) + observed_LL(:,1).*sind(observed_LL(:,2) + x(3));
+          for jj = 1:length(lineptsx)
+              plot([x(1) lineptsx(jj)],[x(2) lineptsy(jj)],'red');
+          end
+      end
+     
+     %Plot scan data
     cartes_data = readCartesian(laserData); %read cartesian co-ordinates
     rot = [cosd(x(3)) -sind(x(3)) x(1); sind(x(3)) cosd(x(3)) x(2); 0 0 1];
     tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
     scatter(tmp(1,:),tmp(2,:),'magenta','.');
     axis([-5 5 -5 5]);
     
+    
     % End Plot Junk
     %----------------------------------------------------------------------    
+    robotSigma=[P(1,1),P(1,2);P(2,1),P(2,2)];
+    robotMu=[x(1);x(2)];
+    [eigvec,eigval]=eig(robotSigma);
+    chi_square=2.2788;
+    major=2*sqrt(chi_square*eigval(1,1));
+    minor=2*sqrt(chi_square*eigval(2,2));
+    t=-pi:0.01:pi;
+    if(eigval(1,1)>eigval(2,2))
+        arc=atan(eigvec(2,1)/eigvec(1,1));
+        robot_x=major*cos(t);
+        robot_y=minor*sin(t);
+    else
+        arc=atan(eigvec(2,2)/eigvec(1,2));
+        robot_x=minor*cos(t);
+        robot_y=major*sin(t);
+    end
+    R=[cos(arc) -sin(arc); sin(arc) cos(arc)];
+    rCoords=R*[robot_x;robot_y];
+    xr=rCoords(1,:);
+    yr=rCoords(2,:);
+    xr=xr+robotMu(1);
+    yr=yr+robotMu(2);
+    plot(xr,yr); 
+
+    for ii=4:2:size(x,2)
+        landmarkSigma=[P(ii,ii),P(ii,ii+1);P(ii+1,ii),P(ii+1,ii+1)];
+        robotMu=[x(ii);x(ii+1)];
+       
+        [eigvec,eigval]=eig(landmarkSigma);
+        chi_square=2.2788;
+        major=2*sqrt(chi_square*eigval(1,1));
+        minor=2*sqrt(chi_square*eigval(2,2));
+        t=-pi:0.01:pi;
+        if(eigval(1,1)>eigval(2,2))
+            arc=atan(eigvec(2,1)/eigvec(1,1));
+            landmark_x=major*cos(t);
+            landmark_y=minor*sin(t);
+        else
+            arc=atan(eigvec(2,2)/eigvec(1,2));
+            landmark_x=minor*cos(t);
+            landmark_y=major*sin(t);
+        end
+        R=[cos(arc) -sin(arc); sin(arc) cos(arc)];
+        rCoords=R*[landmark_x;landmark_y];
+        xr=rCoords(1,:);
+        yr=rCoords(2,:);
+        xr=xr+robotMu(1);
+        yr=yr+robotMu(2);
+        plot(xr,yr); 
+        
+
+    end
+    
+    
     
     hold off
 end

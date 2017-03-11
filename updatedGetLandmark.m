@@ -47,28 +47,30 @@ function [ observed_LL, output_landmark_list ] = updatedGetLandmark( input_landm
 %    list
 
 
-lineConsensus=200;    %number of points needed to be near a line of best 
+lineConsensus=300;    %number of points needed to be near a line of best 
                       %fit in order for it to be considered a potential wall 
                       
-wallSearchTimeOut=5;  %maximum number of times a single laser scan will be 
+wallSearchTimeOut=3;  %maximum number of times a single laser scan will be 
                       %searched for walls 
                       
-numberOfPointsWithinDegrees=10; %number of points used to create sample line
+numberOfPointsWithinDegrees=20; %number of points used to create sample line
 
-degrees=10;           %number of degrees a point must be within 
+degrees=5;           %number of degrees a point must be within 
                       %for it to be considered for use when 
                       %creating the sample line
                       
-lineOfBestFitDistance=.2; %distance a point can be away from the line of 
+lineOfBestFitDistance=.25; %distance a point can be away from the line of 
                           %best fit and still be considered part of the 
                           %line
                           
-landmarkDistance=.2;  %distance a potential landmark can be away from a
+landmarkDistance=.5;  %distance a potential landmark can be away from a
                       %input landmark without being considered a new 
                       %landmark
                       
 landmarkCountConsensus=10;  %number of times a landmark must be observed 
                             %before being considered an 'offical' landmark
+                            
+freshnessTimer  =50  ;                       
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 %start!%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -121,7 +123,7 @@ landmarkCountConsensus=10;  %number of times a landmark must be observed
         %   ALSO, if a landmark is already indexed and is 'reobserved' then add
         %   it to an observed_LL list in terms of distance to robot, angle to
         %   robot, and index.
-        [observed_LL, output_landmark_list]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose);
+        [observed_LL, output_landmark_list]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer);
 
     else
        output_landmark_list=input_landmark_list;
@@ -212,13 +214,16 @@ function orthogPoints = getOrthogPoints(potentialLineList)
     end
 end
 
-function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose)
+function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer)
    
     reobservedLandmarkList=[];
 
     if(isempty(input_landmark_list)&&~isempty(potentialLandmarkList))
-        input_landmark_list=[potentialLandmarkList(1,:),1,0];  %consider changing this once done testing
-        
+      % input_landmark_list=[potentialLandmarkList(1,:),1,0];  %consider changing this once done testing
+        input_landmark_list(1).loc=[potentialLandmarkList(1,:)];
+        input_landmark_list(1).observe=1;
+        input_landmark_list(1).index=0;
+        input_landmark_list(1).fresh=freshnessTimer; 
     elseif(~isempty(potentialLandmarkList))
     
         
@@ -226,57 +231,91 @@ function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndOb
         for ii=1:size(potentialLandmarkList,1)
             flag=0;
             %loop through all the landmarks that already exsit
-            for jj=1:size(input_landmark_list,1)    
+            for jj=1:size(input_landmark_list,2)    
                 %check to see if a potential landmark might have already
                 %been observed and marked as a landmark
-                d=norm(potentialLandmarkList(ii,:)-[input_landmark_list(jj,1),input_landmark_list(jj,2)]);
+                d=norm(potentialLandmarkList(ii,:)-[input_landmark_list(jj).loc(1),input_landmark_list(jj).loc(2)]);
                 
                 %if so then increment that landmarks count
                 if(d<landmarkDistance)
                     
                     %increment count
-                    input_landmark_list(jj,3)=input_landmark_list(jj,3)+1;
+                    input_landmark_list(jj).observe=input_landmark_list(jj).observe+1;
                     flag=1;
                     
                     %check if the count has increased to the consensus, if
                     %so then index it
-                    if(input_landmark_list(jj,3)>landmarkCountConsensus && input_landmark_list(jj,4)==0)
-                        input_landmark_list(jj,4)=max(input_landmark_list(:,4))+1;
+                    if(input_landmark_list(jj).observe)>landmarkCountConsensus && input_landmark_list(jj).index==0
+                        input_landmark_list(jj).index=max([input_landmark_list(:).index])+1;
                     end
                     
                     %if the landmark is indexed then replace the landmark
                     %list value with the measured value
-                    if(input_landmark_list(jj,4)~=0)
-                       input_landmark_list(jj,1)=potentialLandmarkList(ii,1);
-                       input_landmark_list(jj,2)=potentialLandmarkList(ii,2); 
-                       
+                    if(input_landmark_list(jj).index~=0)
+                       input_landmark_list(jj).loc=potentialLandmarkList(ii,:);
+                        
                        xBot=pose(1);
                        yBot=pose(2);
-                       xLandmark=input_landmark_list(jj,1);
-                       yLandmark=input_landmark_list(jj,2);
+                       xLandmark=input_landmark_list(jj).loc(1);
+                       yLandmark=input_landmark_list(jj).loc(2);
                        
                        dist=sqrt((xBot-xLandmark)^2 +(yBot-yLandmark)^2);
                        ang=atan2d(yLandmark-yBot,xLandmark-xBot); 
-                       ang=ang-pose(3);
+                       ang=wrapTo360(ang-pose(3));
                        
-                       reobservedLandmarkList=[reobservedLandmarkList;dist,ang,input_landmark_list(jj,4)];
+                       if(isempty(reobservedLandmarkList))
+                            reobservedLandmarkList=[reobservedLandmarkList;dist,ang,input_landmark_list(jj).index];
+                           
+                       elseif ~find(reobservedLandmarkList(:,3) == input_landmark_list(jj).index)
+                            reobservedLandmarkList=[reobservedLandmarkList;dist,ang,input_landmark_list(jj).index];
+                       end
                        
                     end
                                  
                     %break jj for loop
-                    jj=size(input_landmark_list);
+                    jj=size(input_landmark_list,2);
                     
                 end
             end
             %if the potential landmark was not associated then add it to
             %the list
             if(flag==0)
-               input_landmark_list=[input_landmark_list;potentialLandmarkList(ii,:),1,0]; 
+               %input_landmark_list=[input_landmark_list;potentialLandmarkList(ii,:),1,0]; 
+               input_landmark_list(size(input_landmark_list,2)+1).loc=potentialLandmarkList(ii,:);
+               input_landmark_list(size(input_landmark_list,2)).observe=1;
+               input_landmark_list(size(input_landmark_list,2)).index=0;
+               input_landmark_list(size(input_landmark_list,2)).fresh=freshnessTimer;
+               
             end
        
         end
         
     end
+  %  reobservedLandmarkList=sort(reobservedLandmarkList,4);
     
+    %freshnessssss
+%     idx=reobservedLandmarkList(:,4); 
+%     for ii=1:length(idx)
+%         for jj=1:size(input_landmark_list,2)
+%             if(input_landmark_list.index ~= idx && input_landmark_list.count<landmarkCountConsensus
+%                 %decrement freshness
+%         end
+%         
+%     end
+
+%since indexed landmarks are NEVER decremented really just need to
+%decrement nonindexed landmarks every loop.
+    ii=1;
+    while(ii<=size(input_landmark_list,2))
+        if(input_landmark_list(ii).index==0)
+            input_landmark_list(ii).fresh=input_landmark_list(ii).fresh-1;
+            if(input_landmark_list(ii).fresh==0)
+                input_landmark_list(ii)=[]; 
+                ii=ii-1;
+            end
+        end
+        ii=ii+1;
+    end
+
     outputLandmarkList=input_landmark_list; 
 end

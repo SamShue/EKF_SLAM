@@ -2,11 +2,11 @@ function [x,P] = append(x,P,u,landmark_list,R)
     % Does landmark need to be appended?
     numOfLandmarks = (length(x) - 3) / 2;
     
-    if(numOfLandmarks < landmark_list(4))
+    if(numOfLandmarks < landmark_list.index)
         n = length(P);  
         
         % Append landmark to x
-        x = [x , landmark_list(1), landmark_list(2)];
+        x = [x , landmark_list.loc(1), landmark_list.loc(2)];
         
         % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
         jxr = [1 0 -u(1)*sind(x(3)); ...

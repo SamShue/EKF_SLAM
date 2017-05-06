@@ -1,4 +1,5 @@
-function drawRobot(x,y,theta,radius)
+function drawRobot(x,y,theta,radius, color)
+
     theta = theta - 90;
     % Get points for circle
     angles = 0:5:360;
@@ -23,8 +24,16 @@ function drawRobot(x,y,theta,radius)
     x_c = x_c(1:2,:)';
     x_a = x_a(1:2,:)';
     
-    plot(x_c(:,1),x_c(:,2),'blue'); hold on;
-    plot(x_a(:,1),x_a(:,2),'red');
-    
-    
-    
+    if(nargin < 5)
+        plot(x_c(:,1),x_c(:,2),'blue'); hold on;
+        plot(x_a(:,1),x_a(:,2),'red');
+    else
+        if(strcmp(color ,'gray'))
+            plot(x_c(:,1),x_c(:,2),'Color',[.7 .7 .7]); hold on;
+            plot(x_a(:,1),x_a(:,2),'Color',[.7 .7 .7]);
+        else
+            plot(x_c(:,1),x_c(:,2),color); hold on;
+            plot(x_a(:,1),x_a(:,2),color);
+        end
+    end
+end

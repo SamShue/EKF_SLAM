@@ -17,7 +17,11 @@ odom = rossubscriber('/odom');
 C = 0.2;    % Process Noise Constant
 Rc = [10,1];   % Measurement Noise Constants
 
-landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
+%landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
+
+
+landmark_list=myClass();
+
 ekf_init = 0;
 odomTS = 0;
 laserTS = 0;
@@ -84,9 +88,11 @@ while(1)
     end
     
     % Search for landmarks
-    [observed_LL,landmark_list]=updatedGetLandmark(landmark_list,laserData,x(1:3));
     
-    observed_LL
+    observed_LL=landmark_list.getLandmark(landmark_list,laserData,x(1:3));
+    %[observed_LL,landmark_list]=updatedGetLandmark(landmark_list,laserData,x(1:3));
+    
+    observed_LL;
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))
         [numOfLandmarks ~] = size(observed_LL);
@@ -99,13 +105,13 @@ while(1)
             idx = observed_LL(ii,3);
             
             % if landmark is new, append to x and P
-            temp=[landmark_list(:).index];
+            temp=[landmark_list.landmark(:).index];     %double check functionality
             idx2 = find(temp(:)==idx);
-            [x,P] = append(x,P,u,landmark_list(idx2),R);
+            [x,P] = landmark_list.append(x,P,u,landmark_list.landmark(idx2),R);
         
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);
-            landmark_list = updateLandmarkList(x,landmark_list);
+            landmark_list.updateLandmarkList(x,landmark_list);
         end
     end
     % End estimate robot's pose
@@ -123,11 +129,11 @@ while(1)
         scatter(x((ii-1)*2 + 4),x((ii-1)*2 + 5),'blue','x');
     end
 %      % Plot "unofficial" landmarks
-      temp=[landmark_list(:).index];
+      temp=[landmark_list.landmark(:).index];
       idx = find(temp(:) == 0);
       temp=[];
       for mm=1:size(idx,1)
-         temp=[temp;landmark_list(idx(mm)).loc(1),landmark_list(idx(mm)).loc(1)]; 
+         temp=[temp;landmark_list.landmark(idx(mm)).loc(1),landmark_list.landmark(idx(mm)).loc(1)]; 
       end
       if(~isempty(idx))
         %scatter(landmark_list(idx).loc(1),landmark_list(idx).loc(2),[],[.5 .5 .5],'x');
@@ -136,7 +142,7 @@ while(1)
 %      % Plot observed landmarks
       if(~isempty(observed_LL))
           % Plot observed landmark locations
-          scatter(landmark_list(idx2).loc(1),landmark_list(idx2).loc(2),'o','b');
+          scatter(landmark_list.landmark(idx2).loc(1),landmark_list.landmark(idx2).loc(2),'o','b');
           % Plot observed landmark distances and orientations
           lineptsx = x(1) + observed_LL(:,1).*cosd(observed_LL(:,2) + x(3));
           lineptsy = x(2) + observed_LL(:,1).*sind(observed_LL(:,2) + x(3));

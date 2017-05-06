@@ -16,7 +16,7 @@ classdef myClass < handle
     
     methods (Static)
         
-        function [x,P] = append(x,P,landmark_list,u,R)
+        function [x,P] = append(x,P,u,landmark_list,R)
             % Does landmark need to be appended?
             numOfLandmarks = (length(x) - 3) / 2;
 

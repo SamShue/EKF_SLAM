@@ -20,7 +20,7 @@ Rc = [10,1];   % Measurement Noise Constants
 %landmark_list=[]; %this is an input to the function and can be either empty or full of stuff
 
 
-landmark_list=myClass();
+landmark_list=myClass(); %i am a comment
 
 ekf_init = 0;
 odomTS = 0;

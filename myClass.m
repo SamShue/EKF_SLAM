@@ -44,567 +44,334 @@ classdef myClass < handle
             end
         end
 
-        function [observed_LL]= getLandmark(h,laserdata,pose)
-        %w = warning ('off','all');
-        %GETLANDMARK Determine the location of wall landmarks based on a laser
-        %scan and the pose of the turtlebot. Then determine if that wall landmark seen
-        %by this sweep of the laser scan has been previously seen by the robot
-        %based on the landmark_list. If so then increment the count of that wall
-        %landmark within the landmark_list, else add the new wall landmark to the
-        %landmark_list. Output the updated landmark_list as output_landmark_list
-        %Also, if a landmark has been reobserved from the current
-        %laserdata and that landmark has been observed a number of times greater
-        %than the consensus then determine the distance of the robot from that
-        %landmark and the angle between the robot and the landmark with respect to
-        %the world frame. Output the distance, angle, and the index of the
-        %reobserved landmark as observed_LL
-        %
-        %LANDMARK_LIST Contains the x and y coordinate of each landmark, the number
-        %of times the landmark has been observed, and the index of the landmark in
-        %the state vector (index will be 0 if landmark has not been added to
-        %statevector). If new landmarks are observed or past landmarks are
-        %reobserved then the list is updated accordingly.
-        %
-        %LASERSCAN Contains the laser scan readings from the kinect sensor on the
-        %turtlebot. The data provided by laserscan is operated on to determine the
-        %locations of walls within the laserscan data. 
-        %
-        %POSE Contains the x,y,theta of the turtlebot in relation to the world
-        %frame. Used to apply rotation matrix to landmarks that are initally found
-        %in the LASERSCAN data converting them from the turtlebots from to the
-        %world frame. 
-        %
-        %OBSERVED_LL A list of landmarks that have already been observed enough
-        %times to meet the consensus and have also been reobserved from the current
-        %laserscan data. observed_LL is in the form of distance from the robot to the
-        %landmark, angle of the robot to the landmark with respect to the world
-        %frame, and index of the landmark in the state vector 
-        %
-        %OUTPUT_LANDMARK_LIST Contains the updated landmark list based on the new
-        %reading from the laserscan. Data is of the same format as landmark_list. 
-        %
 
-            timeout= 5; %number of times program will search through a laserscan data before stopping
-            iteration=1; %counts the current number that the program has looped
-            num_samples =20; %number of points to be initally sampled and used to create inital line of best fit
-            degrees = 5;%degree space that inital samples can be taken from (5 on both sides)
-            distance=.25; %max distance that a point can be away from inital line of best fit and still be included in the line
-            consensus = 250; % number of points needed to be near line of best fit in order for line to be approved 
-            confirmed_consensus=10; %number of times a wall must be seen before it will be indexed on the state vector
-
-            association_threshold=0.5;   % Threshold value for reassociated observed landmarks to recorded landmarks
-            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-            %used for the prefiltered landmark list towards bottom of code
-            pfLL_index=[];
-            pfLL=[];
-
-
-            %update landmark_list based on confirmed_landmark_list
-
-
-
-            world_line_list=[]; 
-
-
-            laserdata.Ranges=removeNAN(laserdata.Ranges); %remove NAN readings from scan data
-
-            counter=1;
-            landmark_line_list=zeros(20,2); %prabably want to make this dynamic, it doesnt seem fesable for there to be a case where more then 10 walls will be seen at once
-
-
-            unassociated_readings = readCartesian(laserdata); %convert laser readings to cartesian plane and set unassocaited_readings 
-            samples=[]; 
-
-            while(isempty(unassociated_readings)==false && iteration<timeout && length(unassociated_readings)>consensus && length(unassociated_readings)>num_samples ) %loop while there are still unassocated readings, less than x trails have taken place, and there are still more unassociated readings then the consensus size 
-
-                samples=findInitSamples(unassociated_readings,degrees,num_samples); %get random samples within degrees of each other
-
-
-                %figure(1);
-                %ex=plot(data); %needed for function below
-                %xlim=get(gca,'XLim'); %needed to extend the best fit line created in getLine()
-                %disp(xlim);
-
-
-                xlim=[0 10]; %used for graphing purposes
-                if(~isempty(samples))
-                    sample_line=getSampleLine(samples,xlim); 
-
-                    [unassociated_readings, landmark_line]=getLandmarkLine(sample_line,unassociated_readings,distance,consensus,xlim);
-                    samples=[];
-                end
-
-
-               % scatter(samples(:,1),samples(:,2)); hold on;
-               %line([sample_line(1,1) sample_line(1,2)],[sample_line(2,1),sample_line(2,2)])
-               % plot(data); 
-               % line([landmark_line(1,1),landmark_line(1,2)],[landmark_line(2,1),landmark_line(2,2)]);
-               % scatter(unassociated_readings(:,1),unassociated_readings(:,2));
-
-
-
-
-
-                if(~isempty(landmark_line))
-                    %line([landmark_line(1,1),landmark_line(1,2)],[landmark_line(2,1),landmark_line(2,2)]);
-
-                    landmark_line_list(2*counter-1,1)=landmark_line(1,1);
-                    landmark_line_list(2*counter-1,2)=landmark_line(1,2);
-
-                    landmark_line_list(2*counter,1)=landmark_line(2,1);
-                    landmark_line_list(2*counter,2)=landmark_line(2,2);
-                    counter=counter+1;
-                end
-                iteration=iteration+1; 
-            end
-
-
-
-
-
-
-        % figure(1);   
-         %  plot(data); hold on;
-
-
-        %line([landmark_line_list(3,1),landmark_line_list(3,2)],[landmark_line_list(3+1,1),landmark_line_list(3+1,2)]); hold on;
-
-
-        %    if(~isempty(samples))
-         %       for i=1 : length(landmark_line_list)/2
-           %         line([landmark_line_list(2*i-1,1),landmark_line_list(2*i-1,2)],[landmark_line_list(2*i,1),landmark_line_list(2*i,2)]); hold on;
-          %      end
-          %  end     
-
-        %hold off; 
-            counter=counter-1;
-            real_landmark_line_list=zeros(2*counter,2);
-
-
-            for i=1 : length(real_landmark_line_list)
-
-                real_landmark_line_list(i,1)=landmark_line_list(i,1);
-                real_landmark_line_list(i,2)=landmark_line_list(i,2);
-            end 
-
-
-
-
-        %fix that real_landmark_line_list and landmark_line_list stuff
-
-
-
-
-            x = pose(1);
-            y = pose(2);
-            theta =pose(3);
-
-           % [x,y,z];
-
-
-
-
-            formated_landmark_line_list=zeros(length(real_landmark_line_list),2);
-
-            for i=1 : length(formated_landmark_line_list)/2
-                formated_landmark_line_list(2*i-1,1)= real_landmark_line_list(2*i-1,1);
-                formated_landmark_line_list(2*i,1)= real_landmark_line_list(2*i-1,2); 
-
-                formated_landmark_line_list(2*i-1,2)= real_landmark_line_list(2*i,1);
-                formated_landmark_line_list(2*i,2)= real_landmark_line_list(2*i,2);
-
-            end
-
-        %    if(theta~=0)
-         %       formated_landmark_line_list
-          %  end
-
-            for i = 1 : 1 : length(formated_landmark_line_list) % Loops through observed landmarks for this /scan
-
-                rot = [cosd(theta) -sind(theta) x ; sind(theta) cosd(theta) y; 0 0 1];
-                tr = [formated_landmark_line_list(i,1);formated_landmark_line_list(i,2); 1];
-                transform = rot*tr;
-                final_transform = transform';
-
-
-                world_line_list = [world_line_list; final_transform];
-
-            end
-        %    if(theta~=0)
-         %       world_line_list
-          %  end
-            %disp('+++++++++++++++++++++++++++');
-            %disp(world_line_list);
-            %disp('---------------------------');
-            %disp(formated_landmark_line_list);
-            %disp('+++++++++++++++++++++++++++');
-
-
-            possible_landmark_list=[length(world_line_list),2];
-
-
-            for i = 1 : length(world_line_list)/2
-
-                x1=world_line_list(2*i-1,1);
-                x2=world_line_list(2*i,1);
-                y1=world_line_list(2*i-1,2);
-                y2=world_line_list(2*i,2); 
-
-                m= (x1-x2)/(y1-y2); 
-                b= x1-m*y1;
-
-                m_perp=-1*1/m; %redundent
-                b_perp=0; 
-
-                syms x y 
-                eqn1 = x-m*y == b;
-                eqn2 = x+1/m*y == 0; 
-
-                [A,B]=equationsToMatrix([eqn1,eqn2],[x,y]);
-
-                X = linsolve(A,B);
-                possible_landmark_list(i,1)=X(1);
-                possible_landmark_list(i,2)=X(2);
-
-            end
-            %need to determine shortest distance from each line on world plane to the orig.
-            %(assuming 0,0)
-
-
-
-
-           % disp('possible_landmark_list');
-          %  disp(possible_landmark_list);
-
-                 if isempty(h.landmark) %if list is empty, add landmark to list
-                     if(~isempty(possible_landmark_list))
-                          x1 = possible_landmark_list(1,1);
-                          y1 = possible_landmark_list(1,2);
-
-                          x2 = 0;
-                          y2 = 0;
-
-
-                          distance = sqrt(((x2-x1)^2)+((y2-y1)^2));
-
-
-                      h.landmark = [h.landmark; possible_landmark_list(1,:),1,0];
-                     end 
-                 else
-                      distance_list = [];
-                      checker=1;
-                      pfLL_index=[];
-                      for m=1: size(possible_landmark_list)
-                          %disp('possible landmark list');
-                          %disp(possible_landmark_list);
-                          x1 = possible_landmark_list(m,1);
-                          y1 = possible_landmark_list(m,2);
-                          checker=0;
-                          for n=1: size(landmark_list)
-                            x2 = landmark_list(n,1);
-                            y2 = landmark_list(n,2);
-                            distance = sqrt(((x2-x1)^2)+((y2-y1)^2));
-                            if distance < association_threshold
-                                checker=1;
-                              %  landmark_list(n,:)=possible_landmark_list(m,:); %seems....odd
-
-                              h.landmark(n,3)=h.landmark(n,3)+1; %increment
-
-                              %check to see if the landmark that was observed has
-                              %already been confirmed, if so then add it to the
-                              %pfLL index
-                              if(h.landmark(n,3)>confirmed_consensus && h.landmark(n,4)~=0)
-                                pfLL_index=[pfLL_index,n];
-                              end
-                              %count
-
-                            end
-
-                          end
-
-                          if checker==0
-
-                             distance_list=[distance_list,m];
-                          end
-
-
-                      end
-
-
-                    if ~isempty(possible_landmark_list)
-                      if ~isempty(distance_list)
-                      %  disp('distance list');
-                       % disp(distance_list);
-                        add_these=[possible_landmark_list(distance_list,:) ones(length(distance_list),1) zeros(length(distance_list),1)];
-                      %  disp('add these');
-                      %  disp(add_these);
-
-
-
-                        if add_these(1,1)==0 && add_these(1,2)==2
-
-                        else
-                            h.landmark=[h.landmark;add_these ];
-                        end
-
-                      end
-
-                    end 
-
-
-
-
-
-
-                 end
-
-
-              for ii=1:size(h.landmark)
-                 % disp('land length');
-                 % disp(size(landmark_list));
-                  if(h.landmark(ii,3)>confirmed_consensus && h.landmark(ii,4)==0)
-                    %landmark_list(i,4)=size(confirmed_landmark_list,1)+1;
-                    %confirmed_landmark_list=[confirmed_landmark_list; landmark_list(i,1); landmark_list(i,2)] ;
-
-
-
-
-                    pfLL_index=[pfLL_index,ii];
-                    h.landmark(ii,4)=max(h.landmark(:,4))+1;
-
-                  end
-              end
-
-
-              pfLL=[];
-              if(~isempty(pfLL_index))
-
-                  pfLL=zeros(length(pfLL_index),3); %pfLL_index is in terms of the landmark_list not the confirmed list
-                  pfLL(:,3)=h.landmark(pfLL_index,4);
-
-                  for ii=1:size(pfLL) 
-                     x1=pose(1);
-                     x2=h.landmark(pfLL_index(ii),1);
-                     y1=pose(2);
-                     y2=h.landmark(pfLL_index(ii),2); 
-
-                     d=sqrt((x1-x2)^2 +(y1-y2)^2); 
-                     pfLL(ii,1)=d;
-                     %gives angle in degrees between vectors counterclockwise from
-                     %y1x1 to y2x2
-                     %deg=atan2d((x1*y2-y1*x2),(x2*x1+y2*y1));
-                     % (x2,y2) = landmark pos, (x1,y1) = robot pos
-        %              deg = atand((y2-y1)/(x2-x1)) - pose(3);
-                     deg=atan2d(y2-y1,x2-x1) - pose(3); 
-        %              deg=wrapTo360(wrapTo360(deg) - wrapTo360(pose(3)));
-        %              deg = deg - pose(3);
-                     pfLL(ii,2)=deg;
-
-                  end
-
-              %    for ii=1:size(pfLL)
-               %       pfLL
-              end 
-
-            %  confirmed_landmark_list(1,1)=pose(1);
-            %  confirmed_landmark_list(2,1)=pose(2);
-            %  
-            %  confirmed_landmark_list(3,1)=pose(3); 
-
-
-              %prefiltered 
-
-
-
-
-
-              %set(gcf,'Visible','on');
-            %set(0,'DefaultFigureVisible','on');
-             % figure(2);
-              %   s=scatter(landmark_list(:,2),landmark_list(:,1));hold on
-               %  scatter(pose.Position.Y,pose.Position.X);
-                % axis([-6 6 -6 6]);
-                 %hold off;
-
-              %  x = pose.Position.X;
-            %y = pose.Position.Y;
-
-
-             %   disp('distance list:');
-             %   disp(distance_list);
-
-               %  disp('landmark list:');
-               %  disp(landmark_list);
-
-
-
-               %return confrimed and land_list
-
-               % set(gcf,'Visible','On');
-               % set(0,'DefaultFigureVisible','On');
-
-
-
-               %basic selection sort for pfLL based on index
-               pfLL = sort(pfLL,4); %added assignment after sort - Sam   
-
-               %output_confirmed_landmark_list=confirmed_landmark_list;
-               observed_LL=pfLL;
-        %        if(~isempty(observed_LL))
-        %         observed_LL(:,2) = wrapTo360(observed_LL(:,2));
-        %        end
-               clf;
+        function [ observed_LL, output_landmark_list ] = updatedGetLandmark( input_landmark_list,laserdata,pose )
+%UNTITLED2 Summary of this function goes here
+%   Detailed explanation goes her
+
+%pseudo---
+
+%1. Remove NULLS form laser data
+
+%2. Convert laser data to cartesion coordinates
+
+%3. Rotate cartesion coordinates from local frame to world frame 
+
+%4. Take random point from world frame cartesion coordinates
+
+%5. Attempt to find # of points that are within # of degrees of the random
+%   sample, if not enough points can be found then take new point up to # times
+
+%6. Create line of best fit using random point and points within # degrees 
+
+%7. Search through rotated cartesion coordinates for any points within # of
+%   the line of best fit.
+
+%8. Create new line of best fit using all points found (including the
+%   inital random point, then remove those points from the rotated
+%   cartesion coordinates.
+
+%9. Determine closest point on line of best fit that is orthoganal to the
+%   origin. Add that point to a potential landmark list
+
+%9.5 Repeat steps 4-9 until the number of points in the rotated cartesion
+%    coordinates is less than # or until timeout occurs.
+
+%10. Search through the input landmark list to see if any points on the
+%    potential landmark list are within # of an input landmark. If so then
+%    increment the count of the landmark on the input landmark list, else
+%    add the potential landmark to the landmark list 
+
+%11. During the previous step, if a landmark was reobserved (count was
+%    incremented) then add it to the observed landmark list in the form of
+%    [distance to origion, degrees from pose] 
+
+%12. Check to see if the count of any un-indexed landmarks has exceeded #, 
+%    if so then index that landmark and add it to the observed landmark
+%    list, else... uh do nothing 
+
+%13. Output the now updated input landmark list and the observed landmark
+%    list
+
+
+lineConsensus=300;    %number of points needed to be near a line of best 
+                      %fit in order for it to be considered a potential wall 
+                      
+wallSearchTimeOut=3;  %maximum number of times a single laser scan will be 
+                      %searched for walls 
+                      
+numberOfPointsWithinDegrees=20; %number of points used to create sample line
+
+degrees=5;           %number of degrees a point must be within 
+                      %for it to be considered for use when 
+                      %creating the sample line
+                      
+lineOfBestFitDistance=.25; %distance a point can be away from the line of 
+                          %best fit and still be considered part of the 
+                          %line
+                          
+landmarkDistance=.5;  %distance a potential landmark can be away from a
+                      %input landmark without being considered a new 
+                      %landmark
+                      
+landmarkCountConsensus=10;  %number of times a landmark must be observed 
+                            %before being considered an 'offical' landmark
+                            
+freshnessTimer  =50  ;                       
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%start!%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %1 remove null
+    ind =  find(isnan(laserdata.Ranges)); 
+    laserdata.Ranges(ind)=[]; 
+
+    %2 convert to cartes
+    localFrameCartesCords=readCartesian(laserdata); 
+
+    %3 get points from robot local frame to world frame
+    rot = [cosd(pose(3)) -sind(pose(3)) pose(1); sind(pose(3)) cosd(pose(3)) pose(2); 0 0 1];
+    worldFrameCartesCords = rot*[localFrameCartesCords,ones(length(localFrameCartesCords),1)]';
+    worldFrameCartesCords=worldFrameCartesCords';
+    worldFrameCartesCords(:,3)=[];
+
+
+    counter=0;
+    potentialLineList=[];
+    
+    %9.5 keep searching worldFrameCartesCords for walls until not enough points are left
+    %    for a wall to pass the lineConsensus (or the loop runs # times)
+    while(length(worldFrameCartesCords)>lineConsensus && counter<wallSearchTimeOut)
         
-
-            function y = removeNAN(x)
-            range_data = x; %temp variable to store the range data from the laser scan
-            ind =  find(isnan(range_data)); %find the index of each NAN value in scan data
-            range_data(ind)=[]; %change the value of each NAN to [] 
-            y = range_data; 
-            end
-
-            function z = findInitSamples(x,degrees,num_samples) 
-            points=x;
-            [randomSample,idxRandSamp] = datasample(points,1,'Replace',false); %take a random sample
-            %check if there are at least inital_sample points within degrees of randomSample 
-
-            randomSampleDegreeMax = atand(randomSample(1,2)/randomSample(1,1)) + degrees/2;
-            randomSampleDegreeMin = atand(randomSample(1,2)/randomSample(1,1)) - degrees/2;
-
-            sample_points = zeros(2,num_samples); 
-            sample_pointsIdx = zeros(1,num_samples); 
-
-            for i = 1 : length(points)-1   %not exactly random, imrpve
-                deg = atand(points(i,2)/points(i,1));
-                if( deg>randomSampleDegreeMax || deg <randomSampleDegreeMin)
-                  points(i,:)=0;
-                end
-            end
-
-
-            points=points(points~=0);
-            points=reshape(points,[],2);
-            %need to add if statement for redudency in case somehow the num_samples is
-            %greater than the sample points
-
-            sample_points=[];
-            if(length(points)>num_samples)
-                [sample_points,sample_pointsIdx] = datasample(points,num_samples,'Replace',false);
-            end
-
-            z=sample_points;
-            end 
-
-            function z=getSampleLine(samples,xlim)
-
-            %  set(gcf,'Visible','off');
-            %   set(0,'DefaultFigureVisible','off');
-
-
-            hold off;
-            mhm=scatter(samples(:,2),samples(:,1));
-            h=lsline;
-            %ee=polyfit(samples(:,2),samples(:,1),1);
-
-
-
-
-            YDat=h.YData;   
-            XDat=h.XData;
-            %XDat=[1;2];
-            %YDat=[polyval(ee,XDat(1));polyval(ee,XDat(2))]; 
-
-            m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));
-
-            n= XDat(2)-YDat(2)*m;
-            y1=m*xlim(1)+n;
-            y2=m*xlim(2)+n;
-
-            %line([xlim(1) xlim(2)],[y1,y2])
-
-            sample_line=[xlim(1) xlim(2); y1 y2];
-            %disp(sample_line)
-
-
-            z=sample_line;
-            end
-
-            function [points, land_line]= getLandmarkLine(line,unassociated_readings,distance,consensus,xlim)
-            readings=unassociated_readings; 
-
-            v1=[line(1,1),line(2,1),0];
-            v2=[line(1,2),line(2,2),0];
-
-            idx = zeros(length(readings),1);
-
-            for i= 1 : length(readings)-1
-
-                p=[readings(i,:),0];
-
-                a=v1-v2;
-                b=p-v2;
-                d =norm(cross(a,b))/norm(a);
-
-                if d<distance
-                    idx(i)=i;
-                end
-            end
-
-            idx=idx(idx~=0);
-            rem=readings;
-            landmark_line=[];
-            if length(idx)>consensus
-
-                points_to_be_removed=readings(idx,:);
-                rem=readings; %remaining unassociated landmarks 
-                rem(idx,1)=NaN;
-                rem(idx,2)=NaN;
-
-                rem= rem(~isnan(rem));
-
-
-                rem=reshape(rem,[],2);
-            %     set(gcf,'Visible','off');
-            %     set(0,'DefaultFigureVisible','off');
-                 hold off    
-                 merp=  scatter(points_to_be_removed(:,1),points_to_be_removed(:,2)); 
-                 h=lsline;
-                 YDat=h.XData;   
-                 XDat=h.YData;
-
-
-             %  ee=polyfit(points_to_be_removed(:,1),points_to_be_removed(:,2),1);
-
-             %   XDat=[1;2];
-             %   YDat=[polyval(ee,XDat(1));polyval(ee,XDat(2))];
-
-
-                m = (XDat(2)-XDat(1))/(YDat(2)-YDat(1));
-                n= XDat(2)-YDat(2)*m;
-                y1=m*xlim(1)+n;
-                y2=m*xlim(2)+n;
-
-
-
-                landmark_line=[xlim(1) xlim(2); y1 y2];
-            %landmark_line=[h.XData(1), h.YData(1);h.XData(2),h.YData(2)];
-
-
-
-
-            end
-
-
-
-            points=rem;
-            land_line=landmark_line;
-            w = warning ('on','all');
-            end
+        %4 & 5 Get random point and # of points within 10 degrees
+        pointsWithinDegrees=findPoints(worldFrameCartesCords,numberOfPointsWithinDegrees,degrees);
         
-        end 
+        %the reamining steps only run if steps 4 & 5 were completed
+        %succesfully
+        if(~isempty(pointsWithinDegrees))
+            
+            %6 & 7 & 8 Using the random points try to find a wall
+            [potentialLine,worldFrameCartesCords] = findPotentialLine(worldFrameCartesCords,pointsWithinDegrees,lineConsensus,lineOfBestFitDistance);
+            potentialLineList=[potentialLineList;potentialLine];
+        end
+        counter=counter+1; 
+    end
+    
+    %9 if any potential lines were found then find the closest point
+    %  orthogonal to the origion of each potential line and set it as a 
+    %  potential landmark
+    if(~isempty(potentialLineList))
+        potentialLandmarkList=getOrthogPoints(potentialLineList);
+    
+        
+        %10 & 11 & 12 & 13 check to see if any of the potentialLandmarks are already on the
+        %   input landmark list. if so then increment the count of that input
+        %   landmark else add it to the list with an index of 0. 
+        %   ALSO, if a landmark is already indexed and is 'reobserved' then add
+        %   it to an observed_LL list in terms of distance to robot, angle to
+        %   robot, and index.
+        [observed_LL, output_landmark_list]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer);
+
+    else
+       output_landmark_list=input_landmark_list;
+       observed_LL=[]; 
+    end
+    
+    
+end 
+
+function pointsWithinDeg = findPoints(worldFrameCartesCords,numberOfPointsWithinDegrees,degrees)
+    
+    %take a random point from the avaiable points
+    [samplePoint,~] = datasample(worldFrameCartesCords,1,'Replace',false);
+    
+    %get the degree max and min away from the sample point 
+    randomSampleDegreeMax = atand(samplePoint(1,2)/samplePoint(1,1)) + degrees/2;
+    randomSampleDegreeMin = atand(samplePoint(1,2)/samplePoint(1,1)) - degrees/2;
+    
+    %remove all points that are outside the # degree limit 
+    ii=1;
+    while ii<length(worldFrameCartesCords)
+        deg = atand(worldFrameCartesCords(ii,2)/worldFrameCartesCords(ii,1));
+        if( deg>randomSampleDegreeMax || deg <randomSampleDegreeMin)
+            worldFrameCartesCords(ii,:)=[];
+        else
+            ii=ii+1;
+        end
+    end
+    
+    %take # of random samples from the points within # degrees
+    listOfPoints=[];
+    if(size(worldFrameCartesCords,1)>numberOfPointsWithinDegrees)
+        [listOfPoints,~] = datasample(worldFrameCartesCords,numberOfPointsWithinDegrees,'Replace',false);
+    end
+      
+    pointsWithinDeg=listOfPoints;
+
+end
+
+function [potentialLine,updatedWorldFrameCartesCords] = findPotentialLine(worldFrameCartesCords,pointsWithinDegrees,lineConsensus,lineOfBestFitDistance)
+
+    sampleLine=polyfit(pointsWithinDegrees(:,1),pointsWithinDegrees(:,2),1);    
+    v1=[1,polyval(sampleLine,1),0];
+    v2=[2,polyval(sampleLine,2),0];
+    idx = zeros(length(worldFrameCartesCords),1);
+
+    for i= 1 : size(worldFrameCartesCords,1)
+        p=[worldFrameCartesCords(i,:),0];
+        a=v1-v2;
+        b=p-v2;
+        d =norm(cross(a,b))/norm(a);
+        if d<lineOfBestFitDistance
+            idx(i)=i;
+        end
+    end
+   
+    idx=idx(idx~=0);
+    updatedWorldFrameCartesCords=worldFrameCartesCords;
+    potentialLine=[]; 
+    if length(idx)>lineConsensus
+
+        updatedWorldFrameCartesCords=worldFrameCartesCords; 
+        updatedWorldFrameCartesCords(idx,:)=[];
+        
+        pointsWithinDistance=worldFrameCartesCords(idx,:);
+        potentialLine=polyfit(pointsWithinDistance(:,1),pointsWithinDistance(:,2),1);
+        
+        %plot([0,5],[polyval(potentialLine,0),polyval(potentialLine,5)]);hold on;
+       
+    end
+       
+end
+
+function orthogPoints = getOrthogPoints(potentialLineList)
+    orthogPoints=zeros(size(potentialLineList,1),2);
+    for ii=1:size(potentialLineList,1)
+        m= (polyval(potentialLineList(ii,:),0)-polyval(potentialLineList(ii,:),5))/(0-5);
+        b=polyval(potentialLineList(ii,:),0)-m*0;
+        
+        syms x y 
+        eqn1 = y-m*x == b;
+        eqn2 = y+1/m*x == 0; 
+        [A,B]=equationsToMatrix([eqn1,eqn2],[x,y]);
+        X = linsolve(A,B);
+        
+        orthogPoints(ii,1)=X(1);
+        orthogPoints(ii,2)=X(2);
+    end
+end
+
+function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer)
+   
+    reobservedLandmarkList=[];
+
+    if(isempty(input_landmark_list)&&~isempty(potentialLandmarkList))
+      % input_landmark_list=[potentialLandmarkList(1,:),1,0];  %consider changing this once done testing
+        input_landmark_list(1).loc=[potentialLandmarkList(1,:)];
+        input_landmark_list(1).observe=1;
+        input_landmark_list(1).index=0;
+        input_landmark_list(1).fresh=freshnessTimer; 
+    elseif(~isempty(potentialLandmarkList))
+    
+        
+        %loop through all the potential landmarks
+        for ii=1:size(potentialLandmarkList,1)
+            flag=0;
+            %loop through all the landmarks that already exsit
+            for jj=1:size(input_landmark_list,2)    
+                %check to see if a potential landmark might have already
+                %been observed and marked as a landmark
+                d=norm(potentialLandmarkList(ii,:)-[input_landmark_list(jj).loc(1),input_landmark_list(jj).loc(2)]);
+                
+                %if so then increment that landmarks count
+                if(d<landmarkDistance)
+                    
+                    %increment count
+                    input_landmark_list(jj).observe=input_landmark_list(jj).observe+1;
+                    flag=1;
+                    
+                    %check if the count has increased to the consensus, if
+                    %so then index it
+                    if(input_landmark_list(jj).observe)>landmarkCountConsensus && input_landmark_list(jj).index==0
+                        input_landmark_list(jj).index=max([input_landmark_list(:).index])+1;
+                    end
+                    
+                    %if the landmark is indexed then replace the landmark
+                    %list value with the measured value
+                    if(input_landmark_list(jj).index~=0)
+                       input_landmark_list(jj).loc=potentialLandmarkList(ii,:);
+                        
+                       xBot=pose(1);
+                       yBot=pose(2);
+                       xLandmark=input_landmark_list(jj).loc(1);
+                       yLandmark=input_landmark_list(jj).loc(2);
+                       
+                       dist=sqrt((xBot-xLandmark)^2 +(yBot-yLandmark)^2);
+                       ang=atan2d(yLandmark-yBot,xLandmark-xBot); 
+                       ang=wrapTo360(ang-pose(3));
+                       
+                       if(isempty(reobservedLandmarkList))
+                            reobservedLandmarkList=[reobservedLandmarkList;dist,ang,input_landmark_list(jj).index];
+                           
+                       elseif ~find(reobservedLandmarkList(:,3) == input_landmark_list(jj).index)
+                            reobservedLandmarkList=[reobservedLandmarkList;dist,ang,input_landmark_list(jj).index];
+                       end
+                       
+                    end
+                                 
+                    %break jj for loop
+                    jj=size(input_landmark_list,2);
+                    
+                end
+            end
+            %if the potential landmark was not associated then add it to
+            %the list
+            if(flag==0)
+               %input_landmark_list=[input_landmark_list;potentialLandmarkList(ii,:),1,0]; 
+               input_landmark_list(size(input_landmark_list,2)+1).loc=potentialLandmarkList(ii,:);
+               input_landmark_list(size(input_landmark_list,2)).observe=1;
+               input_landmark_list(size(input_landmark_list,2)).index=0;
+               input_landmark_list(size(input_landmark_list,2)).fresh=freshnessTimer;
+               
+            end
+       
+        end
+        
+    end
+  %  reobservedLandmarkList=sort(reobservedLandmarkList,4);
+    
+    %freshnessssss
+%     idx=reobservedLandmarkList(:,4); 
+%     for ii=1:length(idx)
+%         for jj=1:size(input_landmark_list,2)
+%             if(input_landmark_list.index ~= idx && input_landmark_list.count<landmarkCountConsensus
+%                 %decrement freshness
+%         end
+%         
+%     end
+
+%since indexed landmarks are NEVER decremented really just need to
+%decrement nonindexed landmarks every loop.
+    ii=1;
+    while(ii<=size(input_landmark_list,2))
+        if(input_landmark_list(ii).index==0)
+            input_landmark_list(ii).fresh=input_landmark_list(ii).fresh-1;
+            if(input_landmark_list(ii).fresh==0)
+                input_landmark_list(ii)=[]; 
+                ii=ii-1;
+            end
+        end
+        ii=ii+1;
+    end
+
+    outputLandmarkList=input_landmark_list; 
+end
+        
+        
+        
+        
+        
+        
         
         
         function  updateLandmarkList(state_vector, h)    

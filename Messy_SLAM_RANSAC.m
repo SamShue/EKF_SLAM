@@ -90,9 +90,8 @@ while(1)
     % Search for landmarks
     
     %observed_LL=landmark_list.getLandmark(landmark_list,laserData,x(1:3));
-    [observed_LL,plz]=updatedGetLandmark(landmark_list.landmark,laserData,x(1:3));
-    landmark_list.landmark=plz;
-    observed_LL;
+    [observed_LL] = landmark_list.getLandmark(laserData,x(1:3));
+
     % Apply measurement update in EKF if landmarks are observed
     if(~isempty(observed_LL))
         [numOfLandmarks ~] = size(observed_LL);
@@ -111,7 +110,7 @@ while(1)
         
             % Apply EKF measurement update
             [x,P] = EKF_SLAM_Measurement(x,P,z,R,idx);
-            landmark_list.updateLandmarkList(x,landmark_list);
+            landmark_list.updateLandmarkList(x);
         end
     end
     % End estimate robot's pose

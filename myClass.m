@@ -1,14 +1,12 @@
 classdef myClass < handle
     properties
-        
-        
-        landmark;
-        %Array of structures that contains pos, rssi index, addr, fresh
-        
+        landmark;  % RANSAC landmark storage struct
     end
     methods
         function h = myClass()
-            %default constructor, does nothing...
+            % create variable for RANSAC landmark storage. Initialize as
+            % empty: getLandmark() will initialize structure upon first
+            % landmark observation.
             h.landmark = [];
         end
         
@@ -17,15 +15,20 @@ classdef myClass < handle
     
     methods
         
-        function [x,P] = append(h,x,P,u,landmark_list,R)
-            % Does landmark need to be appended?
+        function [x,P] = append(h,x,P,u,idx,R)
+            % Check if landmark is new
             numOfLandmarks = (length(x) - 3) / 2;
-            
-            if(numOfLandmarks < landmark_list.index)
+            if(numOfLandmarks < idx)
+                % Get landmark (x,y) position from landmark structure to append
+                % to state vector. Use index/correspondence value to find
+                % landmark within ransac landmark storage structure.
+                temp = [h.landmark(:).index];
+                idx2 = find(temp(:)==idx);  % Landmark of correspondence idx
+   
                 n = length(P);
                 
                 % Append landmark to x
-                x = [x , landmark_list.loc(1), landmark_list.loc(2)];
+                x = [x , h.landmark(idx2).loc(1), h.landmark(idx2).loc(2)];
                 
                 % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
                 jxr = [1 0 -u(1)*sind(x(3)); ...
@@ -48,9 +51,7 @@ classdef myClass < handle
         
         function [ observed_LL ] = getLandmark(h, laserdata, pose)
             input_landmark_list = h.landmark;
-            %UNTITLED2 Summary of this function goes here
-            %   Detailed explanation goes her
-            
+
             %pseudo---
             
             %1. Remove NULLS form laser data
@@ -212,8 +213,7 @@ classdef myClass < handle
             
         end
         
-        function [potentialLine,updatedWorldFrameCartesCords] = findPotentialLine(h,worldFrameCartesCords,pointsWithinDegrees,lineConsensus,lineOfBestFitDistance)
-            
+        function [potentialLine,updatedWorldFrameCartesCords] = findPotentialLine(h,worldFrameCartesCords,pointsWithinDegrees,lineConsensus,lineOfBestFitDistance)     
             sampleLine=polyfit(pointsWithinDegrees(:,1),pointsWithinDegrees(:,2),1);
             v1=[1,polyval(sampleLine,1),0];
             v2=[2,polyval(sampleLine,2),0];
@@ -263,19 +263,15 @@ classdef myClass < handle
             end
         end
         
-        function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndObservedLandmarkList(h,input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer)
-            
-            reobservedLandmarkList=[];
-            
+        function [reobservedLandmarkList, outputLandmarkList]=getOutputLandmarkListAndObservedLandmarkList(h,input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer)       
+            reobservedLandmarkList=[];           
             if(isempty(input_landmark_list)&&~isempty(potentialLandmarkList))
                 % input_landmark_list=[potentialLandmarkList(1,:),1,0];  %consider changing this once done testing
                 input_landmark_list(1).loc=[potentialLandmarkList(1,:)];
                 input_landmark_list(1).observe=1;
                 input_landmark_list(1).index=0;
                 input_landmark_list(1).fresh=freshnessTimer;
-            elseif(~isempty(potentialLandmarkList))
-                
-                
+            elseif(~isempty(potentialLandmarkList))   
                 %loop through all the potential landmarks
                 for ii=1:size(potentialLandmarkList,1)
                     flag=0;
@@ -369,13 +365,6 @@ classdef myClass < handle
             outputLandmarkList=input_landmark_list;
         end
         
-        
-        
-        
-        
-        
-        
-        
         function  updateLandmarkList(h, state_vector)
             %UPDATELANDMARKLIST The function will update the input_landmark_list x and
             %y coordinates based on the thier index within the state_vector. It will
@@ -413,8 +402,7 @@ classdef myClass < handle
                 end
             end
         end
-        
-        
+    
     end
     
 end

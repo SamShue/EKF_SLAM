@@ -8,9 +8,8 @@ ipaddress = 'http://192.168.1.16:11311';         %define ipadress of turtlebot
 %setenv('ROS_MASTER_URI', ipaddress);
 %rosinit(ipaddress,'NodeHost','192.168.1.133')                  %initate ros using turtlebot IP
 rosinit('192.168.1.13');
-%still needs to be subscribed and able to access laser and odom;
+
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
-%odom = rossubscriber('/robot_pose_ekf/odom_combined');  %initialize a subscriber node to odomotry data
 odom = rossubscriber('/odom');
 
 % EKF Parameter Values

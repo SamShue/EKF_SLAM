@@ -3,49 +3,12 @@ classdef RANSAC < handle
         landmark;  % RANSAC landmark storage struct
     end
     methods
-        function h = myClass()
+        function h = RANSAC()
             % create variable for RANSAC landmark storage. Initialize as
             % empty: getLandmark() will initialize structure upon first
             % landmark observation.
             h.landmark = [];
         end
-    end
-    
-    methods
-        
-%         function [x,P] = append(h,x,P,u,idx,R)
-%             % Check if landmark is new
-%             numOfLandmarks = (length(x) - 3) / 2;
-%             if(numOfLandmarks < idx)
-%                 % Get landmark (x,y) position from landmark structure to append
-%                 % to state vector. Use index/correspondence value to find
-%                 % landmark within ransac landmark storage structure.
-%                 temp = [h.landmark(:).index];
-%                 idx2 = find(temp(:)==idx);  % Landmark of correspondence idx
-%    
-%                 n = length(P);
-%                 
-%                 % Append landmark to x
-%                 x = [x , h.landmark(idx2).loc(1), h.landmark(idx2).loc(2)];
-%                 
-%                 % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
-%                 jxr = [1 0 -u(1)*sind(x(3)); ...
-%                     0 1  u(1)*cosd(x(3))];
-%                 
-%                 jz = [cosd(u(2)) -u(1)*sind(u(2)); ...
-%                     sind(u(2)) u(1)*cosd(u(2))];
-%                 
-%                 % Append landmark to P (again as defined by SLAM for Dummies)
-%                 P(n+1:n+2,n+1:n+2) = jxr*P(1:3,1:3)*jxr' + jz*R*jz';    %C
-%                 P(1:3,n+1:n+2) = P(1:3,1:3)*jxr';                       %I
-%                 P(n+1:n+2,1:3) = P(1:3,n+1:n+2)';                       %H
-%                 for idx = 1: numOfLandmarks
-%                     P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5)) = jxr*P(((idx-1)*2+4):((idx-1)*2+5),1:3)';   %F
-%                     P(((idx-1)*2+4):((idx-1)*2+5),(n+1):(n+2)) = P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5))';%G
-%                 end
-%             end
-%         end
-        
         
         function [ observed_LL ] = getLandmark(h, laserdata, pose)
             input_landmark_list = h.landmark;

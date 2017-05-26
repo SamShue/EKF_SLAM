@@ -67,7 +67,7 @@ while(1)
         oldOdomPose = odomPose;
     end
     
-    slam.measureFromLandmarks(laserData);
+    slam.measureFromLandmarks(laserData, u);
     % End estimate robot's pose
     %----------------------------------------------------------------------
     

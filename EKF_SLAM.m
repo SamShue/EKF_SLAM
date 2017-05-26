@@ -3,13 +3,17 @@ classdef EKF_SLAM < handle
     %   Detailed explanation goes here
     
     properties
-        x;
-        P;
-        Q;
+        x;  % State vector
+        P;  % Covariance matrix
+        Q;  % Process noise covariance matrix
+        s;  % Landmark signature vector
         
         % EKF Parameter Values
         C = 0.2;    % Process Noise Constant
         Rc = [10,1];   % Measurement Noise Constants
+        
+        % Landmark append threshold
+        alpha = 1;
         
         landmark_list;
     end
@@ -96,56 +100,104 @@ classdef EKF_SLAM < handle
             H(2,(idx-1)*2 + 5) = -((lmx - x(1))/((lmx - x(1))^2 + (lmy - x(2))^2));
         end
         
-        function append(h,u,idx,R,pos)
-            % Check if landmark is new
+        function append(h,u,R,landmarkPos,signature)
+            % Append signature
+            %--------------------------------------------------------------
+            h.s = [h.s;signature];
+            
+            % Append landmark x,y position
+            %--------------------------------------------------------------
             numOfLandmarks = (length(h.x) - 3) / 2;
-            if(numOfLandmarks < idx)
                 
-                n = length(h.P);
-                
-                % Append landmark to x
-                h.x = [h.x , pos(1), pos(2)];
-                
-                % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
-                jxr = [1 0 -u(1)*sind(h.x(3)); ...
-                    0 1  u(1)*cosd(h.x(3))];
-                
-                jz = [cosd(u(2)) -u(1)*sind(u(2)); ...
-                    sind(u(2)) u(1)*cosd(u(2))];
-                
-                % Append landmark to P (again as defined by SLAM for Dummies)
-                h.P(n+1:n+2,n+1:n+2) = jxr*h.P(1:3,1:3)*jxr' + jz*R*jz';    %C
-                h.P(1:3,n+1:n+2) = h.P(1:3,1:3)*jxr';                       %I
-                h.P(n+1:n+2,1:3) = h.P(1:3,n+1:n+2)';                       %H
-                for idx = 1: numOfLandmarks
-                    h.P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5)) = jxr*h.P(((idx-1)*2+4):((idx-1)*2+5),1:3)';   %F
-                    h.P(((idx-1)*2+4):((idx-1)*2+5),(n+1):(n+2)) = h.P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5))';%G
-                end
+            n = length(h.P);
+
+            % Append landmark to x
+            h.x = [h.x , landmarkPos(1), landmarkPos(2)];
+
+            % Append landmark covariances to P
+            %--------------------------------------------------------------
+            % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
+            jxr = [1 0 -u(1)*sind(h.x(3)); ...
+                0 1  u(1)*cosd(h.x(3))];
+
+            jz = [cosd(u(2)) -u(1)*sind(u(2)); ...
+                sind(u(2)) u(1)*cosd(u(2))];
+
+            % Append landmark to P (again as defined by SLAM for Dummies)
+            h.P(n+1:n+2,n+1:n+2) = jxr*h.P(1:3,1:3)*jxr' + jz*R*jz';    %C
+            h.P(1:3,n+1:n+2) = h.P(1:3,1:3)*jxr';                       %I
+            h.P(n+1:n+2,1:3) = h.P(1:3,n+1:n+2)';                       %H
+            for idx = 1: numOfLandmarks
+                h.P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5)) = jxr*h.P(((idx-1)*2+4):((idx-1)*2+5),1:3)';   %F
+                h.P(((idx-1)*2+4):((idx-1)*2+5),(n+1):(n+2)) = h.P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5))';%G
             end
         end
         
-        function measureFromLandmarks(h, laserData)
+        function [idx] = argmin(h, pi)
+            idx = find(pi == min(pi));
+        end
+        
+        function measureFromLandmarks(h, laserData, u)
             % Search for landmarks
-            [observed_LL] = h.landmark_list.getLandmark(laserData,h.x(1:3));
+            [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
             
             % Apply measurement update in EKF if landmarks are observed
             if(~isempty(observed_LL))
-                numOfLandmarks = size(observed_LL,1);
-                for ii = 1:numOfLandmarks
+                numOfObservedLandmarks = size(observed_LL,1);
+                for ii = 1:numOfObservedLandmarks  % "8: For all observed features..."
                     % Measurement vector (Range and relative orientation)
-                    z = [observed_LL(ii,1), observed_LL(ii,2)];
-                    % Measurement noise covariance matrix
-                    R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
-                    % Landmark index / correspondence
-                    idx = observed_LL(ii,3);
-                    
-                    % if landmark is new, append to x and P
-                    idx2 = find([h.landmark_list.landmark(:).index]==idx);  % Landmark of correspondence idx
-                    h.append(u,idx,R,h.landmark_list.landmark(idx2).loc);
-                    
-                    % Apply EKF measurement update
-                    h.EKF_SLAM_Measurement(z,R,idx);
-                    h.landmark_list.updateLandmarkList(slam.x);
+                    z = observed_LL(ii,:);
+                    % Get expected x,y position of observed landmark
+                    % (r,theta -> x,y)
+                    x_bar = [h.x(1:2),z(3)] + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3)); 0]; % Line 9
+                    % Loop through all landmarks in state vector
+                    numOfLandmarks = (length(h.x)-3)/2;
+                    if(numOfLandmarks == 0)
+                        R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+                        h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1);
+                    else
+                        for jj = 1:numOfLandmarks
+                            % Calculate difference between expected location
+                            % and state vector position
+                            delta_k = [h.x((jj-1)*2 + 4) - x_bar(1); h.x((jj-1)*2 + 5) - x_bar(2)];
+                            q_k = delta_k'*delta_k;
+                            % state vector landmark x,y postion ->
+                            % range,bearing, signature
+                            z_hat(jj) = {[sqrt(q_k);angdiff(h.x(3),atan2d(delta_k(2),delta_k(1)));h.s(jj)]};
+                            % DIMENSION MISMATCH HERE
+                            F = zeros(size(h.P));F(1:3,1:3) = eye(3);F(4+(jj-1)*3:4+(jj-1)*3+3,4+(jj-1)*3:4+(jj-1)*3+3) = eye(3);
+
+                            H(jj) = {(1/q_k)*[-sqrt(q_k)*delta_k(1), -sqrt(q_k)*delta_k(2), 0, sqrt(q_k)*delta_k(1), sqrt(q_k)*delta_k(2), 0; ...
+                                         delta_k(2), -delta_k(1), -q_k, -delta_k(2), delta_k(1), 0;
+                                         0, 0, 0, 0, 0, q_k]*F};
+                            R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+                            S(jj) = {cell2mat(H(jj))*h.P*cell2mat(H(jj))' + R};
+                            pi(jj) = (z - cell2mat(z_hat(jj)))'*inv(cell2mat(S(jj)))*(z - cell2mat(z_hat(jj)));
+                        end
+
+                        idx = argmin(pi);
+                        if(idx >= h.alpha)
+                            h.append(u,idx,R,h.landmark_list.landmark(idx).loc);
+                        else
+                            K = h.P*cell2mat(H(idx))'*inv(cell2mat(S(idx)));
+                            h.x = h.x + K*(z - cell2mat(z_hat(idx)));
+                            h.P = (eye(size(h.P)) - K*cell2mat(H(idx)))*h.P;
+                        end
+
+%                         % Measurement vector (Range and relative orientation)
+%                         z = [observed_LL(ii,1), observed_LL(ii,2)];
+%                         % Measurement noise covariance matrix
+%                         R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+%                         % Landmark index / correspondence
+%                         idx = observed_LL(ii,3);
+%                         
+%                         % if landmark is new, append to x and P
+%                         idx2 = find([h.landmark_list.landmark(:).index]==idx);  % Landmark of correspondence idx
+%                         h.append(u,idx,R,h.landmark_list.landmark(idx2).loc);
+%                         
+%                         % Apply EKF measurement update
+%                         h.EKF_SLAM_Measurement(z,R,idx);
+                    end
                 end
             end
             

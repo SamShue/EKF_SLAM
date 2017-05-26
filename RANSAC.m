@@ -11,6 +11,11 @@ classdef RANSAC < handle
         end
         
         function [ observed_LL ] = getLandmark(h, laserdata, pose)
+            % NOTE: pose is now the entire state vector
+            % Update landmark structre from state vector
+            if(~isempty(h.landmark))
+                h.updateLandmarkList(pose);
+            end
             input_landmark_list = h.landmark;
 
             %pseudo---
@@ -134,7 +139,7 @@ classdef RANSAC < handle
                 %   ALSO, if a landmark is already indexed and is 'reobserved' then add
                 %   it to an observed_LL list in terms of distance to robot, angle to
                 %   robot, and index.
-                [observed_LL, output_landmark_list]=h.getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer);
+                [observed_LL, output_landmark_list]=h.getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose(1:3),freshnessTimer);
                 
             else
                 output_landmark_list=input_landmark_list;

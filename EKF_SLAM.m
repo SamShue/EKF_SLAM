@@ -133,10 +133,10 @@ classdef EKF_SLAM < handle
             end
         end
         
-        function [idx] = argmin(h, pi)
-            idx = find(pi == min(pi));
-        end
-        
+%         function [idx] = argmin(h, pi)
+%             idx = find(pi == min(pi));
+%         end
+%         
         function measureUnkownCorrespondence(h, laserData, u)
             % Search for landmarks
             [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
@@ -145,119 +145,202 @@ classdef EKF_SLAM < handle
             if(~isempty(observed_LL))
                 numOfObservedLandmarks = size(observed_LL,1);
                 for ii = 1:numOfObservedLandmarks  % "8: For all observed features..."
-                    % Measurement vector (Range and relative orientation)
-                    z = observed_LL(ii,:);
-                    % Get expected x,y position of observed landmark
-                    % (r,theta -> x,y)
-                    x_bar = [h.x(1:2),z(3)] + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3)); 0]; % Line 9
-                    % Loop through all landmarks in state vector
-                    numOfLandmarks = (length(h.x)-3)/2;
-                    if(numOfLandmarks == 0)
+                    
+                    %check if state has no landmarks
+                    if(length(h.x)<4)
                         R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
-                        h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1);
+                        h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1); 
                     else
-                        for jj = 1:numOfLandmarks
-                            % Calculate difference between expected location
-                            % and state vector position
-                            delta_k = [h.x((jj-1)*2 + 4) - x_bar(1); h.x((jj-1)*2 + 5) - x_bar(2)];
-                            q_k = delta_k'*delta_k;
-                            % state vector landmark x,y postion ->
-                            % range,bearing, signature
-                            z_hat(jj) = {[sqrt(q_k);angdiff(h.x(3),atan2d(delta_k(2),delta_k(1)));h.s(jj)]};
-                            % DIMENSION MISMATCH HERE
-                            F = zeros(6,numOfLandmarks*3+3);F(1:3,1:3) = eye(3);F(4:6,(4+(jj-1)*3):(4+(jj-1)*3+2)) = eye(3);
-                            
-                            H(jj) = {(1/q_k)*[-sqrt(q_k)*delta_k(1), -sqrt(q_k)*delta_k(2), 0, sqrt(q_k)*delta_k(1), sqrt(q_k)*delta_k(2), 0; ...
-                                delta_k(2), -delta_k(1), -q_k, -delta_k(2), delta_k(1), 0;
-                                0, 0, 0, 0, 0, q_k]*F};
-                            R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
-                            S(jj) = {cell2mat(H(jj))*h.P*cell2mat(H(jj))' + R};
-                            pi(jj) = (z - cell2mat(z_hat(jj)))'*inv(cell2mat(S(jj)))*(z - cell2mat(z_hat(jj)));
-                        end
+                        %estimate correspondence
                         
-                        idx = argmin(pi);
-                        if(idx >= h.alpha)
-                            h.append(u,idx,R,h.landmark_list.landmark(idx).loc);
+                        % Measurement vector (Range and relative orientation)
+                        z = observed_LL(ii,:);
+                        R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+                        [new_LL,idx]=estimateCorrespondence(h,z,R);
+                        
+                        if(new_LL)
+                            %append new landmark
+                            h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1); 
                         else
-                            K = h.P*cell2mat(H(idx))'*inv(cell2mat(S(idx)));
-                            h.x = h.x + K*(z - cell2mat(z_hat(idx)));
-                            h.P = (eye(size(h.P)) - K*cell2mat(H(idx)))*h.P;
+                            %update landmark 
                         end
                         
-                        %                         % Measurement vector (Range and relative orientation)
-                        %                         z = [observed_LL(ii,1), observed_LL(ii,2)];
-                        %                         % Measurement noise covariance matrix
-                        %                         R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
-                        %                         % Landmark index / correspondence
-                        %                         idx = observed_LL(ii,3);
-                        %
-                        %                         % if landmark is new, append to x and P
-                        %                         idx2 = find([h.landmark_list.landmark(:).index]==idx);  % Landmark of correspondence idx
-                        %                         h.append(u,idx,R,h.landmark_list.landmark(idx2).loc);
-                        %
-                        %                         % Apply EKF measurement update
-                        %                         h.EKF_SLAM_Measurement(z,R,idx);
-                    end
-                end
-            end
-            
-            
+                    end 
+                   
+                    %storing old code for now...
+                    
+%                     % Get expected x,y position of observed landmark
+%                     % (r,theta -> x,y)
+%                     x_bar = [h.x(1:2),z(3)] + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3)); 0]; % Line 9
+%                     % Loop through all landmarks in state vector
+%                     numOfLandmarks = (length(h.x)-3)/2;
+%                     if(numOfLandmarks == 0)
+%                         R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+%                         h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1);
+%                     else
+%                         for jj = 1:numOfLandmarks
+%                             % Calculate difference between expected location
+%                             % and state vector position
+%                             delta_k = [h.x((jj-1)*2 + 4) - x_bar(1); h.x((jj-1)*2 + 5) - x_bar(2)];
+%                             q_k = delta_k'*delta_k;
+%                             % state vector landmark x,y postion ->
+%                             % range,bearing, signature
+%                             z_hat(jj) = {[sqrt(q_k);angdiff(h.x(3),atan2d(delta_k(2),delta_k(1)));h.s(jj)]};
+%                             % DIMENSION MISMATCH HERE
+%                             F = zeros(6,numOfLandmarks*3+3);F(1:3,1:3) = eye(3);F(4:6,(4+(jj-1)*3):(4+(jj-1)*3+2)) = eye(3);
+%                             
+%                             H(jj) = {(1/q_k)*[-sqrt(q_k)*delta_k(1), -sqrt(q_k)*delta_k(2), 0, sqrt(q_k)*delta_k(1), sqrt(q_k)*delta_k(2), 0; ...
+%                                 delta_k(2), -delta_k(1), -q_k, -delta_k(2), delta_k(1), 0;
+%                                 0, 0, 0, 0, 0, q_k]*F};
+%                             R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+%                             S(jj) = {cell2mat(H(jj))*h.P*cell2mat(H(jj))' + R};
+%                             pi(jj) = (z - cell2mat(z_hat(jj)))'*inv(cell2mat(S(jj)))*(z - cell2mat(z_hat(jj)));
+%                         end
+%                         
+%                         idx = argmin(pi);
+%                         if(idx >= h.alpha)
+%                             h.append(u,idx,R,h.landmark_list.landmark(idx).loc);
+%                         else
+%                             K = h.P*cell2mat(H(idx))'*inv(cell2mat(S(idx)));
+%                             h.x = h.x + K*(z - cell2mat(z_hat(idx)));
+%                             h.P = (eye(size(h.P)) - K*cell2mat(H(idx)))*h.P;
+%                         end
+%                         
+%                         %                         % Measurement vector (Range and relative orientation)
+%                         %                         z = [observed_LL(ii,1), observed_LL(ii,2)];
+%                         %                         % Measurement noise covariance matrix
+%                         %                         R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
+%                         %                         % Landmark index / correspondence
+%                         %                         idx = observed_LL(ii,3);
+%                         %
+%                         %                         % if landmark is new, append to x and P
+%                         %                         idx2 = find([h.landmark_list.landmark(:).index]==idx);  % Landmark of correspondence idx
+%                         %                         h.append(u,idx,R,h.landmark_list.landmark(idx2).loc);
+%                         %
+%                         %                         % Apply EKF measurement update
+%                         %                         h.EKF_SLAM_Measurement(z,R,idx);
+%                     end
+                 end
+            end  
         end
+%         
+%         function [new_landmark, H, S, z_hat] = estimateCorrespondence(h, z_meas, signature)
+%             H=[];
+%             S=[];
+%             z_hat=[0 0]';
+%             new_landmark = true;
+%             %pred_xy = h.pred_state(1:2);pred_theta = h.pred_state(3);
+%             x_bar = [h.x(1:2),z(3)] + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3)); 0]; % Line 9
+%             % estimate the correspondence for a detected landmark
+%             % compute the log-likelihood of the observation given the
+%             % assumption that the observation is an existing landmark
+%             F_xk = [eye(h.robotStateDim), ...
+%                 zeros(h.robotStateDim,h.numLandmarks*h.landmarkDim);
+%                 zeros(h.landmarkDim,h.robotStateDim+h.numLandmarks*h.landmarkDim)];
+%             min_log_likelihood = Inf;
+%             log_likelihood = zeros(h.numLandmarks,1);
+%             for lidx=1:h.numLandmarks
+%                 landmarkIdx = (lidx-1)*h.landmarkDim + h.robotStateDim + 1;
+%                 landmarkState = h.pred_state(landmarkIdx:(landmarkIdx+h.landmarkDim-1));
+%                 landmarkSignature = h.landmarkSignatures(lidx,:)';
+%                 delta_k = landmarkState - x_bar(1:2); % vector from predicted state to landmark
+%                 q_k = delta_k'*delta_k;
+%                 z_hat_k = [sqrt(q_k); ...
+%                     angdiff(x_bar(3), atan2(delta_k(2), delta_k(1)))];
+%                 % set landmark k/lidx portion of matrix to ones
+%                 for dim=1:h.landmarkDim
+%                     % set appropriate values of F_xk to 1
+%                 end
+%                 sqrt_q_k = sqrt(q_k);
+%                 
+%                 % compute H_k
+%                 H_k = zeros(h.landmarkDim,h.robotStateDim+h.landmarkDim);
+%                 % compute Psi_k
+%                 Psi_k = zeros(h.landmarkDim,h.landmarkDim);
+%                 % compute position cost
+%                 positionCost = 0;
+%                 % compute signature cost
+%                 signatureCost = 0;
+%                 
+%                 log_likelihood(lidx)= positionCost + signatureCost;
+%                 % set landmark k/lidx portion of matrix to zeros
+%                 for dim=1:h.landmarkDim
+%                     % set appropriate values of F_xk to 0
+%                 end
+%                 if (log_likelihood(lidx) < h.NEW_LANDMARK_THRESHOLD)
+%                     if (log_likelihood(lidx) < min_log_likelihood)
+%                         new_landmark = false;
+%                         min_log_likelihood = log_likelihood(lidx);
+%                         z_hat = z_hat_k;
+%                         H = H_k;
+%                         S = Psi_k;
+%                     end
+%                 end
+%             end
+%         end
+%         
+%         
         
-        function [new_landmark, H, S, z_hat] = estimateCorrespondence(h, z_meas, signature)
-            H=[];
-            S=[];
-            z_hat=[0 0]';
-            new_landmark = true;
-            %pred_xy = h.pred_state(1:2);pred_theta = h.pred_state(3);
-            x_bar = [h.x(1:2),z(3)] + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3)); 0]; % Line 9
-            % estimate the correspondence for a detected landmark
-            % compute the log-likelihood of the observation given the
-            % assumption that the observation is an existing landmark
-            F_xk = [eye(h.robotStateDim), ...
-                zeros(h.robotStateDim,h.numLandmarks*h.landmarkDim);
-                zeros(h.landmarkDim,h.robotStateDim+h.numLandmarks*h.landmarkDim)];
-            min_log_likelihood = Inf;
-            log_likelihood = zeros(h.numLandmarks,1);
-            for lidx=1:h.numLandmarks
-                landmarkIdx = (lidx-1)*h.landmarkDim + h.robotStateDim + 1;
-                landmarkState = h.pred_state(landmarkIdx:(landmarkIdx+h.landmarkDim-1));
-                landmarkSignature = h.landmarkSignatures(lidx,:)';
-                delta_k = landmarkState - x_bar(1:2); % vector from predicted state to landmark
-                q_k = delta_k'*delta_k;
-                z_hat_k = [sqrt(q_k); ...
-                    angdiff(x_bar(3), atan2(delta_k(2), delta_k(1)))];
-                % set landmark k/lidx portion of matrix to ones
-                for dim=1:h.landmarkDim
-                    % set appropriate values of F_xk to 1
-                end
-                sqrt_q_k = sqrt(q_k);
-                
-                % compute H_k
-                H_k = zeros(h.landmarkDim,h.robotStateDim+h.landmarkDim);
-                % compute Psi_k
-                Psi_k = zeros(h.landmarkDim,h.landmarkDim);
-                % compute position cost
-                positionCost = 0;
-                % compute signature cost
-                signatureCost = 0;
-                
-                log_likelihood(lidx)= positionCost + signatureCost;
-                % set landmark k/lidx portion of matrix to zeros
-                for dim=1:h.landmarkDim
-                    % set appropriate values of F_xk to 0
-                end
-                if (log_likelihood(lidx) < h.NEW_LANDMARK_THRESHOLD)
+        function [newLL,index] = estimateCorrespondence(h,z,R)
+             %ASSUMPTION, x contains at least one landmark
+             %            z is of the form [range,bearing]
+             
+             %default values for if the landmark is new
+             newLL=true;
+             index=-1; 
+             
+             % Line 9: Estimate landmarks position from measured range/bearing and robots current position
+             mu = h.x(1:2)' + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3))]; 
+                       
+             %number of landmarks in the state vector
+             numOfLandmarks = (length(h.x)-3)/2;
+             
+             %starting likelihood of the measurment being a new landmark
+             min_log_likelihood = Inf; 
+            
+             %array for storing the likelihood of the measurment being an landmark already in the state vector            
+             log_likelihood = zeros(numOfLandmarks,1); 
+             
+             % Line 10: Compare the measured landmark with all exsiting landmarks
+             for kk=1:numOfLandmarks 
+                 mu_k=[h.x((kk-1)*2 + 4);h.x((kk-1)*2 + 5)];
+                 
+                 delta_k=mu_k-mu; 
+                 q_k=delta_k'*delta_k;
+                 
+                 %Line 13
+                 z_k=[sqrt(q_k); angdiff(h.x(3),atan2d(delta_k(2),delta_k(1)))];
+                 
+                 %Line 14
+                 F_k = zeros(6,numOfLandmarks*3+3);F(1:3,1:3) = eye(3);F_k(4:6,(4+(kk-1)*3):(4+(kk-1)*3+2)) = eye(3);
+                 
+                 %Line 15
+                 H_k = (1/q_k)*[-sqrt(q_k)*delta_k(1), -sqrt(q_k)*delta_k(2), 0, sqrt(q_k)*delta_k(1), sqrt(q_k)*delta_k(2), 0; ...
+                                delta_k(2), -delta_k(1), -q_k, -delta_k(2), delta_k(1), 0;
+                                0, 0, 0, 0, 0, q_k]*F_k;
+                 
+                 %Line 16
+                 phi_k = H_k*h.P*H_k' + R;
+                 
+                 %Line 17
+                 position_cost=(z-z_k)'*phi_k^-1*(z-z_k);
+                 
+                 %Store the likelihood per this landmark in the state
+                 log_likelihood(kk)=position_cost;
+                 
+                 %check to see if the likelihood is below the new landmark
+                 %threshold 
+                 if (log_likelihood(kk) < h.NEW_LANDMARK_THRESHOLD)
+                    %check to see if the landmark the measurment is currently being compared to 
+                    %is more likely than any of the previous landmarks
                     if (log_likelihood(lidx) < min_log_likelihood)
-                        new_landmark = false;
-                        min_log_likelihood = log_likelihood(lidx);
-                        z_hat = z_hat_k;
-                        H = H_k;
-                        S = Psi_k;
+                        newLL = false; %not a new landmark
+                        min_log_likelihood = log_likelihood(lidx); %update min_log_likelihood
+                        index=kk; %update index 
                     end
-                end
-            end
-        end
+                end                  
+            end   
+        end 
         
     end
 end

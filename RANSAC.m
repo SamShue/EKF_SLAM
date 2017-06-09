@@ -79,7 +79,7 @@ classdef RANSAC < handle
             %best fit and still be considered part of the
             %line
             
-            landmarkDistance=.25;  %distance a potential landmark can be away from a
+            landmarkDistance=.5;  %distance a potential landmark can be away from a
             %input landmark without being considered a new
             %landmark
             
@@ -350,17 +350,16 @@ classdef RANSAC < handle
             
             if(length(state_vector)>3)
                 %loop through all of the coordinates in the confirmed landmark list
-                for ii=(length(state_vector)-3)/2
+                for ii=4:2:length(state_vector)
                     %update the landmark_list coordinates based on the confirmed
                     %landmark list coordinates
-                    for jj=1:length(h.landmark)  %FIX: will search through entire list even after it finds the coordinates
-                        if(h.landmark(jj).index==ii)
+                    for jj=1:size(h.landmark,2)  %FIX: will search through entire list even after it finds the coordinates
+                        if(h.landmark(jj).index==((ii-4)/2 + 1))
                             %  landmark_list(jj,1)=state_vector(ii);
                             %  landmark_list(jj,2)=state_vector(ii+1);
-                            h.landmark(jj).loc(1)=state_vector((2*(ii-1))+4);
-                            h.landmark(jj).loc(2)=state_vector((2*(ii-1))+5);
-                            %FIX THE INDEXING ABOVE
-                            jj=length(h.landmark);
+                            h.landmark(jj).loc(1)=state_vector(ii);
+                            h.landmark(jj).loc(2)=state_vector(ii+1);
+                            jj=size(h.landmark,2);
                         end
                     end
                     %each pair of coordinates occupies two locations in the vector

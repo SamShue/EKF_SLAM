@@ -12,14 +12,8 @@ rosinit('192.168.1.13');
 laser = rossubscriber('/scan');      %initialize a subscriber node to kinect laser scan data
 odom = rossubscriber('/odom');
 
-
-
 landmark_list = RANSAC();
 
-
-ekf_init = 0;
-odomTS = 0;
-laserTS = 0;
 while(1)
     % Receive ROS Topics
     %======================================================================
@@ -49,9 +43,9 @@ while(1)
     % Estimate Robot's pose
     %======================================================================
     % Initialize variables if first iteration
-    if(~exist('slam'))
+    if(~exist('ekf_slam','var'))
         oldOdomPose = odomPose;
-        slam = EKF_SLAM();
+        ekf_slam = EKF_SLAM();
         u = [0, 0];
     else
         % Get control vector (change in linear displacement and rotation)to
@@ -61,13 +55,13 @@ while(1)
         u = [delta_D, delta_Theta];
         
         % Update position estimate
-        slam.EKF_SLAM_Prediction(u);
+        ekf_slam.prediction(u);
         
         % Record current odometry pose for next iteration
         oldOdomPose = odomPose;
     end
     
-    slam.measureUnkownCorrespondence(laserData, u);
+    ekf_slam.measureUnknownCorrespondence(laserData, u);
     % End estimate robot's pose
     %----------------------------------------------------------------------
     
@@ -78,11 +72,11 @@ while(1)
     clf; hold on;
     
     % Plot robot
-    drawRobot(slam.x(1),slam.x(2),slam.x(3),0.25);
+    drawRobot(ekf_slam.x(1),ekf_slam.x(2),ekf_slam.x(3),0.25);
     
     % Plot landmarks
-    for ii = 1:((length(slam.x)-3)/2)
-        scatter(slam.x((ii-1)*2 + 4),slam.x((ii-1)*2 + 5),'blue','x');
+    for ii = 1:((length(ekf_slam.x)-3)/2)
+        scatter(ekf_slam.x((ii-1)*2 + 4),ekf_slam.x((ii-1)*2 + 5),'blue','x');
     end
     
 %     % Plot "unofficial"/pre-filtered landmarks

@@ -34,6 +34,9 @@ classdef Correspondence
         function [newLL,index] = estimateCorrespondenceML(h,x,P,z,R,s)
             %ASSUMPTION, x contains at least one landmark
             %            z is of the form [range,bearing]
+            if(length(x) < 4)
+                newLL = true;
+            end
             
             %default values for if the landmark is new
             newLL=true;

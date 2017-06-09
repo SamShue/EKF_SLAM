@@ -61,7 +61,7 @@ while(1)
         oldOdomPose = odomPose;
     end
     
-    ekf_slam.measureUnknownCorrespondence(laserData, u);
+    ekf_slam.measureKnownCorrespondence(laserData, u);
     % End estimate robot's pose
     %----------------------------------------------------------------------
     

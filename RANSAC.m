@@ -3,51 +3,19 @@ classdef RANSAC < handle
         landmark;  % RANSAC landmark storage struct
     end
     methods
-        function h = myClass()
+        function h = RANSAC()
             % create variable for RANSAC landmark storage. Initialize as
             % empty: getLandmark() will initialize structure upon first
             % landmark observation.
             h.landmark = [];
         end
-    end
-    
-    methods
-        
-%         function [x,P] = append(h,x,P,u,idx,R)
-%             % Check if landmark is new
-%             numOfLandmarks = (length(x) - 3) / 2;
-%             if(numOfLandmarks < idx)
-%                 % Get landmark (x,y) position from landmark structure to append
-%                 % to state vector. Use index/correspondence value to find
-%                 % landmark within ransac landmark storage structure.
-%                 temp = [h.landmark(:).index];
-%                 idx2 = find(temp(:)==idx);  % Landmark of correspondence idx
-%    
-%                 n = length(P);
-%                 
-%                 % Append landmark to x
-%                 x = [x , h.landmark(idx2).loc(1), h.landmark(idx2).loc(2)];
-%                 
-%                 % Get SLAM-Specific Jacobians (as defined by SLAM for Dummies!)
-%                 jxr = [1 0 -u(1)*sind(x(3)); ...
-%                     0 1  u(1)*cosd(x(3))];
-%                 
-%                 jz = [cosd(u(2)) -u(1)*sind(u(2)); ...
-%                     sind(u(2)) u(1)*cosd(u(2))];
-%                 
-%                 % Append landmark to P (again as defined by SLAM for Dummies)
-%                 P(n+1:n+2,n+1:n+2) = jxr*P(1:3,1:3)*jxr' + jz*R*jz';    %C
-%                 P(1:3,n+1:n+2) = P(1:3,1:3)*jxr';                       %I
-%                 P(n+1:n+2,1:3) = P(1:3,n+1:n+2)';                       %H
-%                 for idx = 1: numOfLandmarks
-%                     P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5)) = jxr*P(((idx-1)*2+4):((idx-1)*2+5),1:3)';   %F
-%                     P(((idx-1)*2+4):((idx-1)*2+5),(n+1):(n+2)) = P((n+1):(n+2),((idx-1)*2+4):((idx-1)*2+5))';%G
-%                 end
-%             end
-%         end
-        
         
         function [ observed_LL ] = getLandmark(h, laserdata, pose)
+            % NOTE: pose is now the entire state vector
+            % Update landmark structre from state vector
+            if(~isempty(h.landmark))
+                h.updateLandmarkList(pose);
+            end
             input_landmark_list = h.landmark;
 
             %pseudo---
@@ -111,7 +79,7 @@ classdef RANSAC < handle
             %best fit and still be considered part of the
             %line
             
-            landmarkDistance=.5;  %distance a potential landmark can be away from a
+            landmarkDistance=.50;  %distance a potential landmark can be away from a
             %input landmark without being considered a new
             %landmark
             
@@ -171,7 +139,7 @@ classdef RANSAC < handle
                 %   ALSO, if a landmark is already indexed and is 'reobserved' then add
                 %   it to an observed_LL list in terms of distance to robot, angle to
                 %   robot, and index.
-                [observed_LL, output_landmark_list]=h.getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose,freshnessTimer);
+                [observed_LL, output_landmark_list]=h.getOutputLandmarkListAndObservedLandmarkList(input_landmark_list,potentialLandmarkList,landmarkCountConsensus,landmarkDistance,pose(1:3),freshnessTimer);
                 
             else
                 output_landmark_list=input_landmark_list;
@@ -382,16 +350,17 @@ classdef RANSAC < handle
             
             if(length(state_vector)>3)
                 %loop through all of the coordinates in the confirmed landmark list
-                for ii=4:2:length(state_vector)
+                for ii=(length(state_vector)-3)/2
                     %update the landmark_list coordinates based on the confirmed
                     %landmark list coordinates
-                    for jj=1:size(h.landmark,2)  %FIX: will search through entire list even after it finds the coordinates
-                        if(h.landmark(jj).index==((ii-4)/2 + 1))
+                    for jj=1:length(h.landmark)  %FIX: will search through entire list even after it finds the coordinates
+                        if(h.landmark(jj).index==ii)
                             %  landmark_list(jj,1)=state_vector(ii);
                             %  landmark_list(jj,2)=state_vector(ii+1);
-                            h.landmark(jj).loc(1)=state_vector(ii);
-                            h.landmark(jj).loc(2)=state_vector(ii+1);
-                            jj=size(h.landmark,2);
+                            h.landmark(jj).loc(1)=state_vector((2*(ii-1))+4);
+                            h.landmark(jj).loc(2)=state_vector((2*(ii-1))+5);
+                            %FIX THE INDEXING ABOVE
+                            jj=length(h.landmark);
                         end
                     end
                     %each pair of coordinates occupies two locations in the vector

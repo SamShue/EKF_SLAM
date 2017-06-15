@@ -1,4 +1,4 @@
-classdef EKF_WITH_KNOWN_CORRESPONDENCE < handle
+classdef EKF_SLAM < handle
     %UNTITLED4 Summary of this class goes here
     %   Detailed explanation goes here
     
@@ -20,7 +20,7 @@ classdef EKF_WITH_KNOWN_CORRESPONDENCE < handle
     
     methods
         % Constructor - initialize state variables and covariances
-        function h = EKF_WITH_KNOWN_CORRESPONDENCE()
+        function h = EKF_SLAM()
             % State Vector
             h.x = [0,0,0];
             % Covariance Matrix
@@ -34,7 +34,7 @@ classdef EKF_WITH_KNOWN_CORRESPONDENCE < handle
         % Pass current state vector, covariance matrix, control vector, and
         % prediction noise covariance matrix. Returns predicted state
         % vector and covariance matrix.
-        function EKF_SLAM_Prediction(h,u)
+        function prediction(h,u)
             % Get noise covariance matrix for control signal
             W = [u(1)*cosd(h.x(3)) u(1)*sind(h.x(3)) u(2)]';
             h.Q = zeros(size(h.P));
@@ -59,45 +59,6 @@ classdef EKF_WITH_KNOWN_CORRESPONDENCE < handle
             F = eye(length(x));
             F(1,3) = -1*u(1)*sind(x(3));
             F(2,3) = u(1)*cosd(x(3));
-        end
-        
-        % Measurement Phase of EKF
-        % Pass current state vector, covariance matrix, measurement vector,
-        % measurement noise covariance matrix, and landmark association.
-        function EKF_SLAM_Measurement(h,z,R,idx)
-            [x_mm,H] = h.h(h.x,idx);
-            y = z' - x_mm';
-            %     y(1) = z(1)' - x_mm(1)';
-            y(2) = angdiff(deg2rad(x_mm(2)),deg2rad(z(2)));
-            S = H*h.P*H' + R;
-            K = h.P*H'*(S\eye(size(S)));
-            h.x = h.x + (K*y)';
-            h.P = (eye(size(K*H)) - K*H)*h.P;
-        end
-        
-        % Non-linear Measurement model
-        % Pass current state vector, landmark index/correspondence. Returns
-        % the state variables in the measurement space and the Jacobian of
-        % the measurement model.
-        function [x_measure,H] = h(h,x,idx)
-            lmx = x((idx-1)*2 + 4);
-            lmy = x((idx-1)*2 + 5);
-            % idx is the index of the observed node
-            x_measure(1) = sqrt((x(1) - lmx)^2 + (x(2) - lmy)^2);
-            x_measure(2) = atan2d((lmy - x(2)),(lmx - x(1))) - x(3);
-            
-            % Jacobian of h
-            H = zeros(2,length(x));
-            H(1,1) = (x(1) - lmx)/sqrt((lmx - x(1))^2 + (lmy - x(2))^2);
-            H(1,2) = (x(2) - lmy)/sqrt((lmx - x(1))^2 + (lmy - x(2))^2);
-            H(1,(idx-1)*2 + 4) = -((x(1) - lmx)/sqrt((x(1) - lmx)^2 + (x(2) - lmy)^2));
-            H(1,(idx-1)*2 + 5) = -((x(2) - lmy)/sqrt((x(1) - lmx)^2 + (x(2) - lmy)^2));
-            
-            H(2,1) = (lmy - x(2))/((lmx - x(1))^2 + (lmy - x(2))^2);
-            H(2,2) = (lmx - x(1))/((lmx - x(1))^2 + (lmy - x(2))^2);
-            H(2,3) = -1;
-            H(2,(idx-1)*2 + 4) = -((lmy - x(2))/((lmx - x(1))^2 + (lmy - x(2))^2));
-            H(2,(idx-1)*2 + 5) = -((lmx - x(1))/((lmx - x(1))^2 + (lmy - x(2))^2));
         end
         
         function append(h,u,R,landmarkPos,signature)
@@ -133,7 +94,7 @@ classdef EKF_WITH_KNOWN_CORRESPONDENCE < handle
             end
         end
         
-        function measureUnknownCorrespondence(h, laserData, u)
+        function measurement(h, laserData, u)
             % Search for landmarks
             [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
             

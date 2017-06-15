@@ -3,7 +3,7 @@ classdef SLAM
     %   Detailed explanation goes here
     
     properties
-        slamObj;
+        slam;
         algorithmName;
     end
     
@@ -13,10 +13,10 @@ classdef SLAM
         function h = SLAM(inputString)
             h.algorithmName = inputString;
             switch(h.algorithmName)
-                case 'EKF_WITH_CORRESPONDENCE'
-                    h.slamObj = EKF_WITH_KNOWN_CORRESPONDENCE();
-                case 'EKF_WITHOUT_CORRESPONDENCE'
-                    h.slamObj = EKF_WITHOUT_KNOWN_CORRESPONDENCE();
+                case 'EKF_SLAM'
+                    h.slam = EKF_SLAM();
+                case 'EKF_SLAM_UC'
+                    h.slam = EKF_SLAM_UC();
                 otherwise
                     
             end
@@ -25,9 +25,9 @@ classdef SLAM
         function predict(h,u)
             switch(h.algorithmName)
                 case 'EKF_WITH_CORRESPONDENCE'
-                    h.slamObj.EKF_SLAM_Prediction(u);
+                    h.slam.prediction(u);
                 case 'EKF_WITHOUT_CORRESPONDENCE' 
-                    h.slamObj.EKF_SLAM_Prediction(u);
+                    h.slam.prediction(u);
                 otherwise
             end
         end
@@ -35,9 +35,9 @@ classdef SLAM
         function correspondence(h,laserdata,u)
             switch(h.algorithmName)
                 case 'EKF_WITH_CORRESPONDENCE'
-                    h.slamObj.measureUnknownCorrespondence(laserdata,u);
+                    h.slam.measurement(laserdata,u);
                 case 'EKF_WITHOUT_CORRESPONDENCE'
-                    h.slamObj.measureUnknownCorrespondence(laserdata,u);
+                    h.slam.measurement(laserdata,u);
             end   
         end
     end

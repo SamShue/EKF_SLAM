@@ -34,7 +34,7 @@ classdef EKF_SLAM < handle
         % Pass current state vector, covariance matrix, control vector, and
         % prediction noise covariance matrix. Returns predicted state
         % vector and covariance matrix.
-        function prediction(h,u)
+        function predict(h,u)
             % Get noise covariance matrix for control signal
             W = [u(1)*cosd(h.x(3)) u(1)*sind(h.x(3)) u(2)]';
             h.Q = zeros(size(h.P));
@@ -94,7 +94,7 @@ classdef EKF_SLAM < handle
             end
         end
         
-        function measurement(h, laserData, u)
+        function measure(h, laserData, u)
             % Search for landmarks
             [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
             

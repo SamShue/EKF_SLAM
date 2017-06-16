@@ -70,7 +70,7 @@ while(1)
         oldOdomPose = odomPose;
     end
     
-    s.measurement(laserData, u);
+    s.measure(laserData, u);
     
     
     cartes_data = readCartesian(laserData); %read cartesian co-ordinates

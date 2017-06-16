@@ -24,20 +24,20 @@ classdef SLAM
         
         function predict(h,u)
             switch(h.algorithmName)
-                case 'EKF_WITH_CORRESPONDENCE'
-                    h.slam.prediction(u);
-                case 'EKF_WITHOUT_CORRESPONDENCE' 
-                    h.slam.prediction(u);
+                case 'EKF_SLAM'
+                    h.slam.predict(u);
+                case 'EKF_SLAM_UC' 
+                    h.slam.predict(u);
                 otherwise
             end
         end
         
-        function correspondence(h,laserdata,u)
+        function measure(h,laserdata,u)
             switch(h.algorithmName)
-                case 'EKF_WITH_CORRESPONDENCE'
-                    h.slam.measurement(laserdata,u);
-                case 'EKF_WITHOUT_CORRESPONDENCE'
-                    h.slam.measurement(laserdata,u);
+                case 'EKF_SLAM'
+                    h.slam.measure(laserdata,u);
+                case 'EKF_SLAM_UC'
+                    h.slam.measure(laserdata,u);
             end   
         end
     end

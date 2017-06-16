@@ -212,7 +212,7 @@ classdef EKF_SLAM_UC < handle
         
         function plot(h)
 
-            clf; hold on;
+            hold on;
             
             % Plot robot
             drawRobot(h.x(1),h.x(2),h.x(3),0.25);
@@ -222,16 +222,7 @@ classdef EKF_SLAM_UC < handle
                 scatter(h.x((ii-1)*2 + 4),h.x((ii-1)*2 + 5),'blue','x');
             end
             
-            % Plot "unofficial"/pre-filtered landmarks
-            temp=[h.landmark_list.landmark(:).index];
-            idx = find(temp(:) == 0);
-            temp=[];
-            for mm=1:size(idx,1)
-                temp=[temp;h.landmark_list.landmark(idx(mm)).loc(1),h.landmark_list.landmark(idx(mm)).loc(1)];
-            end
-            if(~isempty(idx))
-                scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
-            end
+
             
             % Plot range and orientation of observed landmarks
             if(~isempty(h.observed))

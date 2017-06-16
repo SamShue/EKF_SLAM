@@ -373,3 +373,17 @@ classdef RANSAC < handle
     end
     
 end
+
+
+% 
+% 
+%             % Plot "unofficial"/pre-filtered landmarks
+%             temp=[h.landmark_list.landmark(:).index];
+%             idx = find(temp(:) == 0);
+%             temp=[];
+%             for mm=1:size(idx,1)
+%                 temp=[temp;h.landmark_list.landmark(idx(mm)).loc(1),h.landmark_list.landmark(idx(mm)).loc(1)];
+%             end
+%             if(~isempty(idx))
+%                 scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
+%             end

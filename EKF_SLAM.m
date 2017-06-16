@@ -150,7 +150,7 @@ classdef EKF_SLAM < handle
         
         function plot(h)
 
-            clf; hold on;
+            hold on;
             
             % Plot robot
             drawRobot(h.x(1),h.x(2),h.x(3),0.25);

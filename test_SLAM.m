@@ -79,10 +79,21 @@ while(1)
     
     %setOccupancy(map, world_frame_laser_scan(1:2,:)',1);
     %show(map);
+   
     
+    
+    
+    %Plot scan data
+     
+    cartes_data = readCartesian(laserData); %read cartesian co-ordinates
+    rot = [cosd(s.slam.x(3)) -sind(s.slam.x(3)) s.slam.x(1); sind(s.slam.x(3)) cosd(s.slam.x(3)) s.slam.x(2); 0 0 1];
+    tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
+    scatter(tmp(1,:),tmp(2,:),'magenta','.');
+    axis([-3.5 3.5 -3.5 3.5]);
+            
     s.slam.plot(); 
     
-
+    
 end
 
 

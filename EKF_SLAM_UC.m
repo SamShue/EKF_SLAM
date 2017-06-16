@@ -16,6 +16,7 @@ classdef EKF_SLAM_UC < handle
         s_thresh=1000000000
         
         landmark_list;
+        observed
     end
     
     methods
@@ -97,8 +98,7 @@ classdef EKF_SLAM_UC < handle
         function measure(h, laserData, u)
             % Search for landmarks
             [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
-            global observed 
-            observed=observed_LL; 
+            h.observed=observed_LL;
             % Apply measurement update in EKF if landmarks are observed
             if(~isempty(observed_LL))
                 numOfObservedLandmarks = size(observed_LL,1);
@@ -209,6 +209,112 @@ classdef EKF_SLAM_UC < handle
                 end
             end
         end
+        
+        function plot(h)
+
+            clf; hold on;
+            
+            % Plot robot
+            drawRobot(h.x(1),h.x(2),h.x(3),0.25);
+            
+            % Plot landmarks
+            for ii = 1:((length(h.x)-3)/2)
+                scatter(h.x((ii-1)*2 + 4),h.x((ii-1)*2 + 5),'blue','x');
+            end
+            
+            % Plot "unofficial"/pre-filtered landmarks
+            temp=[h.landmark_list.landmark(:).index];
+            idx = find(temp(:) == 0);
+            temp=[];
+            for mm=1:size(idx,1)
+                temp=[temp;h.landmark_list.landmark(idx(mm)).loc(1),h.landmark_list.landmark(idx(mm)).loc(1)];
+            end
+            if(~isempty(idx))
+                scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
+            end
+            
+            % Plot range and orientation of observed landmarks
+            if(~isempty(h.observed))
+                % Plot observed landmark locations
+                for ii = 1:size(h.observed,1)
+                    temp = [h.landmark_list.landmark(:).index];
+                    idx2 = find(temp(:)==h.observed(ii,3));  % Landmark of correspondence idx
+                    scatter(h.landmark_list.landmark(idx2).loc(1),h.landmark_list.landmark(idx2).loc(2),'o','b');
+                    % Plot observed landmark distances and orientations
+                    lineptsx = h.x(1) + h.observed(:,1).*cosd(h.observed(:,2) + h.x(3));
+                    lineptsy = h.x(2) + h.observed(:,1).*sind(h.observed(:,2) + h.x(3));
+                    for jj = 1:length(lineptsx)
+                        plot([h.x(1) lineptsx(jj)],[h.x(2) lineptsy(jj)],'red');
+                    end
+                end
+            end
+            h.observed=[];
+            
+            %Plot scan data
+%             cartes_data = readCartesian(laserData); %read cartesian co-ordinates
+%             rot = [cosd(h.x(3)) -sind(h.x(3)) h.x(1); sind(h.x(3)) cosd(h.x(3)) h.x(2); 0 0 1];
+%             tmp = rot*[cartes_data,ones(length(cartes_data),1)]';
+%             scatter(tmp(1,:),tmp(2,:),'magenta','.');
+%             axis([-3.5 3.5 -3.5 3.5]);
+            
+            
+            % Plot robot and landmark covariances
+            robotSigma=[h.P(1,1),h.P(1,2);h.P(2,1),h.P(2,2)];
+            robotMu=[h.x(1);h.x(2)];
+            [eigvec,eigval]=eig(robotSigma);
+            chi_square=2.2788;
+            major=2*sqrt(chi_square*eigval(1,1));
+            minor=2*sqrt(chi_square*eigval(2,2));
+            t=-pi:0.01:pi;
+            if(eigval(1,1)>eigval(2,2))
+                arc=atan(eigvec(2,1)/eigvec(1,1));
+                robot_x=major*cos(t);
+                robot_y=minor*sin(t);
+            else
+                arc=atan(eigvec(2,2)/eigvec(1,2));
+                robot_x=minor*cos(t);
+                robot_y=major*sin(t);
+            end
+            R=[cos(arc) -sin(arc); sin(arc) cos(arc)];
+            rCoords=R*[robot_x;robot_y]*.25;
+            xr=rCoords(1,:);
+            yr=rCoords(2,:);
+            xr=xr+robotMu(1);
+            yr=yr+robotMu(2);
+            plot(xr,yr);
+            
+            for ii=4:2:size(h.x,2)
+                landmarkSigma=[h.P(ii,ii),h.P(ii,ii+1);h.P(ii+1,ii),h.P(ii+1,ii+1)];
+                robotMu=[h.x(ii);h.x(ii+1)];
+                
+                [eigvec,eigval]=eig(landmarkSigma);
+                chi_square=2.2788;   %2.2788
+                major=2*sqrt(chi_square*eigval(1,1));
+                minor=2*sqrt(chi_square*eigval(2,2));
+                t=-pi:0.01:pi;
+                if(eigval(1,1)>eigval(2,2))
+                    arc=atan(eigvec(2,1)/eigvec(1,1));
+                    landmark_x=major*cos(t);
+                    landmark_y=minor*sin(t);
+                else
+                    arc=atan(eigvec(2,2)/eigvec(1,2));
+                    landmark_x=minor*cos(t);
+                    landmark_y=major*sin(t);
+                end
+                R=[cos(arc) -sin(arc); sin(arc) cos(arc)];
+                rCoords=R*[landmark_x;landmark_y]*.50;
+                xr=rCoords(1,:);
+                yr=rCoords(2,:);
+                xr=xr+robotMu(1);
+                yr=yr+robotMu(2);
+                plot(xr,yr);
+            end
+            
+            hold off
+    % End Plot Junk
+    %----------------------------------------------------------------------
+        end
+        
     end
 end
 

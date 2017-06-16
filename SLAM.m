@@ -40,5 +40,14 @@ classdef SLAM
                     h.slam.measure(laserdata,u);
             end   
         end
+        
+        function plot(h)
+            switch(h.algorithmName)
+                case 'EKF_SLAM'
+                    h.slam.plot();
+                case 'EKF_SLAM_UC'
+                    h.slam.plot();
+            end
+        end
     end
 end

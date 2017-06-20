@@ -11,7 +11,7 @@ ipaddress = 'http://192.168.1.16:11311';         %define ipadress of turtlebot
 rosinit('192.168.1.13');
 
 
-s=SLAM('EKF_SLAM');
+s=SLAM('EKF_SLAM_UC');
 
 while(1)
     s.runSlam();

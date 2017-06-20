@@ -17,6 +17,8 @@ classdef EKF_SLAM < handle
         
         landmark_list;
         observed
+        
+        
     end
     
     methods

@@ -10,11 +10,13 @@ classdef Correspondence
     
     methods
         function h = Correspondence(cost, thresh, method)
-            if(nargin > 2)
+            h.method=method;
+            switch(method)
+                case 'EKF_SLAM_UC'
                 h.s_cost = cost;
                 h.s_thresh = thresh;
-                h.method = method;
-            else
+
+                otherwise
                 warning('Improper method specified. Using ML as default.');
                 h.s_cost = cost;
                 h.s_thresh = thresh;
@@ -22,16 +24,8 @@ classdef Correspondence
             end 
         end
         
-        function [newLL,index] = estimateCorrespondence(h,x,P,z,R,s)
-            switch(h.method)
-                case strcmp(h.method,'ML')
-                    [newLL,index] = h.estimateCorrespondenceML(x,P,z,R,s);
-                otherwise
-                    [newLL,index] = h.estimateCorrespondenceML(x,P,z,R,s);
-            end
-        end
         
-        function [newLL,index] = estimateCorrespondenceML(h,x,P,z,R,s)
+        function [newLL,index] = estimateCorrespondence(h,z,R,x,P,s)
             %ASSUMPTION, x contains at least one landmark
             %            z is of the form [range,bearing]
             
@@ -74,11 +68,11 @@ classdef Correspondence
                 %Line 17
                 position_cost = (z(1:2)' - z_k)'*phi_k^-1*(z(1:2)' - z_k);
                 
-                signiture_cost = (z(3) - s(kk))'*h.s_cost*(z(3) - s(kk));
+                signiture_cost = (z(3) - s(kk))'*h.s_cost^-1*(z(3) - s(kk));
                 
                 %Store the likelihood per this landmark in the state
-                log_likelihood(kk)=position_cost+signiture_cost;
-                
+                %log_likelihood(kk)=position_cost+signiture_cost;
+                log_likelihood(kk)=signiture_cost;
                 %check to see if the likelihood is below the new landmark
                 %threshold
                 if (log_likelihood(kk) <= h.s_thresh)
@@ -92,7 +86,8 @@ classdef Correspondence
                 end
             end
         end
-    end
-    
+
+    end 
+        
 end
 

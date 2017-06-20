@@ -15,6 +15,8 @@ classdef EKF_SLAM_UC < handle
         % Landmark append threshold
         s_thresh=1000000000
         
+        
+        
         landmark_list;
         observed
     end
@@ -28,7 +30,8 @@ classdef EKF_SLAM_UC < handle
             h.P = eye(length(h.x)).*0.1;
             h.P(1,1) = 0.1; h.P(2,2) = 0.1; h.P(3,3) = 0.1;
             
-            h.landmark_list = RANSAC();
+            
+            
         end
         
         % Prediction Phase of EKF
@@ -95,9 +98,9 @@ classdef EKF_SLAM_UC < handle
             end
         end
         
-        function measure(h, laserData, u)
+        function measure(h, laserData, u, landmark_list)
             % Search for landmarks
-            [observed_LL] = h.landmark_list.getLandmark(laserData,h.x);
+            [observed_LL] = landmark_list.getLandmark(laserData,h.x);
             h.observed=observed_LL;
             % Apply measurement update in EKF if landmarks are observed
             if(~isempty(observed_LL))
@@ -106,7 +109,7 @@ classdef EKF_SLAM_UC < handle
                     R = zeros(2,2); R(1,1) = observed_LL(ii,1)*h.Rc(1); R(2,2) = observed_LL(ii,2)*h.Rc(2);
                     %check if state has no landmarks
                     if(length(h.x)<4)
-                        h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index])).loc,1);
+                        h.append(u,R,landmark_list.landmarkObj.landmark(find([landmark_list.landmarkObj.landmark.index])).loc,1);
                     else
                         %estimate correspondence
                         
@@ -116,7 +119,7 @@ classdef EKF_SLAM_UC < handle
                         
                         if(new_LM)
                             %append new landmark
-                            h.append(u,R,h.landmark_list.landmark(find([h.landmark_list.landmark.index]==idx)).loc,idx);
+                            h.append(u,R,landmark_list.landmarkObj.landmark(find([landmark_list.landmarkObj.landmark.index]==idx)).loc,idx);
                         else
                             mu = h.x(1:2)' + z(1)*[cosd(z(2) + h.x(3));sind(z(2) + h.x(3))];
                             mu_k = [h.x(4+(idx-1)*2);h.x(4+(idx-1)*2+1)];
@@ -210,7 +213,7 @@ classdef EKF_SLAM_UC < handle
             end
         end
         
-        function plot(h)
+        function plot(h,landmark_list)
 
             hold on;
             
@@ -222,24 +225,10 @@ classdef EKF_SLAM_UC < handle
                 scatter(h.x((ii-1)*2 + 4),h.x((ii-1)*2 + 5),'blue','x');
             end
             
-
+            % Plot unoffical landmarks
+            landmark_list.landmarkObj.plot(h.x,h.observed);
             
-            % Plot range and orientation of observed landmarks
-            if(~isempty(h.observed))
-                % Plot observed landmark locations
-                for ii = 1:size(h.observed,1)
-                    temp = [h.landmark_list.landmark(:).index];
-                    idx2 = find(temp(:)==h.observed(ii,3));  % Landmark of correspondence idx
-                    scatter(h.landmark_list.landmark(idx2).loc(1),h.landmark_list.landmark(idx2).loc(2),'o','b');
-                    % Plot observed landmark distances and orientations
-                    lineptsx = h.x(1) + h.observed(:,1).*cosd(h.observed(:,2) + h.x(3));
-                    lineptsy = h.x(2) + h.observed(:,1).*sind(h.observed(:,2) + h.x(3));
-                    for jj = 1:length(lineptsx)
-                        plot([h.x(1) lineptsx(jj)],[h.x(2) lineptsy(jj)],'red');
-                    end
-                end
-            end
-            h.observed=[];
+           
             
             %Plot scan data
 %             cartes_data = readCartesian(laserData); %read cartesian co-ordinates

@@ -1,6 +1,7 @@
 classdef RANSAC < handle
     properties
         landmark;  % RANSAC landmark storage struct
+        observed;  % used to plot observed landmarks
     end
     methods
         function h = RANSAC()
@@ -146,6 +147,7 @@ classdef RANSAC < handle
                 observed_LL=[];
             end
             h.landmark = output_landmark_list;
+            
             
         end
         
@@ -369,21 +371,39 @@ classdef RANSAC < handle
                 end
             end
         end
-    
+        
+        
+        function plot(h,x,observed)
+            % Plot "unofficial"/pre-filtered landmarks
+            temp=[h.landmark(:).index];
+            idx = find(temp(:) == 0);
+            temp=[];
+            for mm=1:size(idx,1)
+                temp=[temp;h.landmark(idx(mm)).loc(1),h.landmark(idx(mm)).loc(1)];
+            end
+            if(~isempty(idx))
+                scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
+            end
+            
+            % Plot range and orientation of observed landmarks
+            if(~isempty(observed))
+                % Plot observed landmark locations
+                for ii = 1:size(observed,1)
+                    temp = [h.landmark(:).index];
+                    idx2 = find(temp(:)==observed(ii,3));  % Landmark of correspondence idx
+                    scatter(h.landmark(idx2).loc(1),h.landmark(idx2).loc(2),'o','b');
+                    % Plot observed landmark distances and orientations
+                    lineptsx = x(1) + observed(:,1).*cosd(observed(:,2) + x(3));
+                    lineptsy = x(2) + observed(:,1).*sind(observed(:,2) + x(3));
+                    for jj = 1:length(lineptsx)
+                        plot([x(1) lineptsx(jj)],[x(2) lineptsy(jj)],'red');
+                    end
+                end
+            end
+            
+        end
+        
     end
     
 end
 
-
-% 
-% 
-%             % Plot "unofficial"/pre-filtered landmarks
-%             temp=[h.landmark_list.landmark(:).index];
-%             idx = find(temp(:) == 0);
-%             temp=[];
-%             for mm=1:size(idx,1)
-%                 temp=[temp;h.landmark_list.landmark(idx(mm)).loc(1),h.landmark_list.landmark(idx(mm)).loc(1)];
-%             end
-%             if(~isempty(idx))
-%                 scatter(temp(:,1),temp(:,2),[],[.5 .5 .5],'x');
-%             end
